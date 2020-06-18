@@ -17,7 +17,8 @@ from tf.transformations import euler_from_quaternion
 h = [0.35, 0.125, 0.35, 0.125]                  # wheel distances along arms (from end) [ L1 L2 R1 R2 ]
 N = len(h)                                      # number drive motors
 d = np.sqrt(2*(0.475**2))                       # diagonal distance between two arms of robot
-
+r1 = np.array([0.075, 0.425])                   # axis_offset - (arm_width/2) = 0.075
+r2 = np.array([0.075, 0.425])                   # distacnce between wheels = 0.35
 
 def pointController(self):
     kp_1 = 10
@@ -48,15 +49,25 @@ def pointController(self):
 
 def convert2motorInputs(v_cmd, theta_dot_cmd):
 
-    phi_cmd = np.arctan2(v_cmd[1], v_cmd[0]) + np.pi/2
+    v_th = np.concatenate((r1*theta_dot_cmd, r2*theta_dot_cmd))
+    v_des = np.repeat(v_cmd.reshape(2,1), N, axis=1)
+    V_cmd = v_cmd + armFrame2RobotFrame(np.concatenate((np.zeros((1,N)), v_th.reshape(1,-1))))
+    V_cmd = np.array(V_cmd, dtype=np.float64)
+    V_norm_cmd = npl.norm(V_cmd, axis=1)
 
-    l = d*np.sin((np.pi/2)+phi_cmd)
-    delta_v = theta_dot_cmd*l
-    v_1 = npl.norm(v_cmd)-delta_v/2
-    v_end = npl.norm(v_cmd)+delta_v/2
-    V_cmd = np.array([v_1,v_1,v_end,v_end]) # [ L1 L2 R1 R2 ]
+    phi_cmd = np.arctan2(V_cmd[:,1], V_cmd[:,0]) + np.pi/2
 
-    return V_cmd, phi_cmd
+    return V_norm_cmd, phi_cmd
+
+def armFrame2RobotFrame(v_armFrame):
+    # Frame 1 to robot frame, frame 2 is already aligned
+    v_af1 = v_armFrame[:,0:N/2]
+    v_af2 = v_armFrame[:,N/2:]
+    R_90_ccw = np.array([[0, -1], [1, 0]])
+
+    v_robotFrame = np.concatenate((np.matmul(R_90_ccw, v_af1), v_af2))
+
+    return v_robotFrame
 
 def trajectoryController(self):
     kp_e_p = 12
@@ -160,7 +171,7 @@ class Controller():
     def controlLoop(self):
         # default behavior (0 = Vx Vy theta_dot)
         self.V_cmd = np.zeros(N)
-        self.phi_cmd = 0 # rads
+        self.phi_cmd = np.zeros(N) # rads
 
         if self.pos[0] != None:
             # Point controller
@@ -174,7 +185,7 @@ class Controller():
         """ publish cmd messages """
         self.cmds = ControllerCmd()
         self.cmds.velocity_arr.data = self.V_cmd
-        self.cmds.phi_arr.data = np.array([self.phi_cmd, self.phi_cmd]) #space for phi1 and phi2
+        self.cmds.phi_arr.data = self.phi_cmd
         self.pub_cmds.publish(self.cmds)
 
     def run(self):
