@@ -1,5 +1,6 @@
-import rospy
+#!/usr/bin/env python
 
+import rospy
 from astar import *
 from ar_commander.msg import Trajectory
 from std_msgs.msg import Float64MultiArray
