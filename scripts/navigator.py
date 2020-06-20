@@ -30,6 +30,6 @@ trajectory.theta.data = np.zeros((len(trajectory.x.data),1))
 
 rate = rospy.Rate(10) # 10 Hz
 while not rospy.is_shutdown():
-	pub_trajectory.publish(trajectory)
-	rate.sleep()
+    pub_trajectory.publish(trajectory)
+    rate.sleep()
 
