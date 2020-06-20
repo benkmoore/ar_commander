@@ -1,4 +1,3 @@
-
 <launch>
     <node pkg="ar_commander" type="navigator.py" name="Navigator" output="screen" />
     <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
