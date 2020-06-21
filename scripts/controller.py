@@ -43,31 +43,24 @@ def pointController(self):
     self.p_delta_prev = p_delta
 
     # Convert to motor inputs
-    V_cmd, phi_cmd = convert2motorInputs(v_cmd, theta_dot_cmd)
+    V_cmd, phi_cmd = convert2motorInputs(self, v_cmd, theta_dot_cmd)
 
     return V_cmd, phi_cmd, v_cmd
 
-def convert2motorInputs(v_cmd, theta_dot_cmd):
+def convert2motorInputs(self, v_cmd_gf, theta_dot_cmd):
+    # Arm frame = af, Robot frame = rf, Global frame = gf
+    v_th_af = np.concatenate((np.zeros((1,N)), (np.concatenate((r1*theta_dot_cmd, r2*theta_dot_cmd))).reshape(1,-1)))
+    v_th_rf = np.concatenate((np.matmul(np.array([[0, -1], [1, 0]]), v_th_af[:,0:N/2]), \
+            v_th_af[:,N/2:]), axis=1) # Frame 1 to robot frame: 90 cw, Frame 2 is already aligned
+    v_des_rf = np.matmul(np.array([[np.cos(self.theta), np.sin(self.theta)], [-np.sin(self.theta), np.cos(self.theta)]]), v_cmd_gf.reshape(2,1))
 
-    v_th = np.concatenate((r1*theta_dot_cmd, r2*theta_dot_cmd))
-    v_des = np.repeat(v_cmd.reshape(2,1), N, axis=1)
-    V_cmd = v_cmd + armFrame2RobotFrame(np.concatenate((np.zeros((1,N)), v_th.reshape(1,-1))))
+    V_cmd = np.repeat(v_des_rf, N, axis=1) + v_th_rf # Command in rf
     V_cmd = np.array(V_cmd, dtype=np.float64)
-    V_norm_cmd = npl.norm(V_cmd, axis=1)
 
-    phi_cmd = np.arctan2(V_cmd[:,1], V_cmd[:,0]) + np.pi/2
+    V_norm_cmd = npl.norm(V_cmd, axis=0)
+    phi_cmd = np.arctan2(V_cmd[1,:], V_cmd[0,:]) + np.pi/2
 
     return V_norm_cmd, phi_cmd
-
-def armFrame2RobotFrame(v_armFrame):
-    # Frame 1 to robot frame, frame 2 is already aligned
-    v_af1 = v_armFrame[:,0:N/2]
-    v_af2 = v_armFrame[:,N/2:]
-    R_90_ccw = np.array([[0, -1], [1, 0]])
-
-    v_robotFrame = np.concatenate((np.matmul(R_90_ccw, v_af1), v_af2))
-
-    return v_robotFrame
 
 def trajectoryController(self):
     kp_e_p = 12
@@ -116,7 +109,7 @@ def trajectoryController(self):
     theta_dot_cmd = kp_e_th*(theta_delta)
 
     # Convert to motor inputs
-    V_cmd, phi_cmd = convert2motorInputs(v_cmd, theta_dot_cmd)
+    V_cmd, phi_cmd = convert2motorInputs(self, v_cmd, theta_dot_cmd)
 
     return V_cmd, phi_cmd, v_cmd
 
