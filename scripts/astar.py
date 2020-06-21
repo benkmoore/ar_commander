@@ -112,7 +112,7 @@ class AStar(object):
     # INPUT: None
     # OUTPUT: None
     def plot_path(self):
-        if not self.path:
+        if len(self.path) == 0:
             return
 
         fig = plt.figure()
