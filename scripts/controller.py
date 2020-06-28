@@ -17,7 +17,8 @@ from tf.transformations import euler_from_quaternion
 h = [0.35, 0.125, 0.35, 0.125]                  # wheel distances along arms (from end) [ L1 L2 R1 R2 ]
 N = len(h)                                      # number drive motors
 d = np.sqrt(2*(0.475**2))                       # diagonal distance between two arms of robot
-
+r1 = np.array([0.075, 0.425])                   # axis_offset - (arm_width/2) = 0.075
+r2 = np.array([0.075, 0.425])                   # distacnce between wheels = 0.35
 
 def pointController(self):
     kp_1 = 10
@@ -42,21 +43,24 @@ def pointController(self):
     self.p_delta_prev = p_delta
 
     # Convert to motor inputs
-    V_cmd, phi_cmd = convert2motorInputs(v_cmd, theta_dot_cmd)
+    V_cmd, phi_cmd = convert2motorInputs(self, v_cmd, theta_dot_cmd)
 
     return V_cmd, phi_cmd, v_cmd
 
-def convert2motorInputs(v_cmd, theta_dot_cmd):
+def convert2motorInputs(self, v_cmd_gf, theta_dot_cmd):
+    # Arm frame = af, Robot frame = rf, Global frame = gf
+    v_th_af = np.concatenate((np.zeros((1,N)), (np.concatenate((r1*theta_dot_cmd, r2*theta_dot_cmd))).reshape(1,-1)))
+    v_th_rf = np.concatenate((np.matmul(np.array([[0, -1], [1, 0]]), v_th_af[:,0:N/2]), \
+            v_th_af[:,N/2:]), axis=1) # Frame 1 to robot frame: 90 cw, Frame 2 is already aligned
+    v_des_rf = np.matmul(np.array([[np.cos(self.theta), np.sin(self.theta)], [-np.sin(self.theta), np.cos(self.theta)]]), v_cmd_gf.reshape(2,1))
 
-    phi_cmd = np.arctan2(v_cmd[1], v_cmd[0]) + np.pi/2
+    V_cmd = np.repeat(v_des_rf, N, axis=1) + v_th_rf # Command in rf
+    V_cmd = np.array(V_cmd, dtype=np.float64)
 
-    l = d*np.sin((np.pi/2)+phi_cmd)
-    delta_v = theta_dot_cmd*l
-    v_1 = npl.norm(v_cmd)-delta_v/2
-    v_end = npl.norm(v_cmd)+delta_v/2
-    V_cmd = np.array([v_1,v_1,v_end,v_end]) # [ L1 L2 R1 R2 ]
+    V_norm_cmd = npl.norm(V_cmd, axis=0)
+    phi_cmd = np.arctan2(V_cmd[1,:], V_cmd[0,:]) + np.pi/2
 
-    return V_cmd, phi_cmd
+    return V_norm_cmd, phi_cmd
 
 def trajectoryController(self):
     kp_e_p = 12
@@ -105,7 +109,7 @@ def trajectoryController(self):
     theta_dot_cmd = kp_e_th*(theta_delta)
 
     # Convert to motor inputs
-    V_cmd, phi_cmd = convert2motorInputs(v_cmd, theta_dot_cmd)
+    V_cmd, phi_cmd = convert2motorInputs(self, v_cmd, theta_dot_cmd)
 
     return V_cmd, phi_cmd, v_cmd
 
@@ -160,7 +164,7 @@ class Controller():
     def controlLoop(self):
         # default behavior (0 = Vx Vy theta_dot)
         self.V_cmd = np.zeros(N)
-        self.phi_cmd = 0 # rads
+        self.phi_cmd = np.zeros(N) # rads
 
         if self.pos[0] != None:
             # Point controller
@@ -174,7 +178,7 @@ class Controller():
         """ publish cmd messages """
         self.cmds = ControllerCmd()
         self.cmds.velocity_arr.data = self.V_cmd
-        self.cmds.phi_arr.data = np.array([self.phi_cmd, self.phi_cmd]) #space for phi1 and phi2
+        self.cmds.phi_arr.data = self.phi_cmd
         self.pub_cmds.publish(self.cmds)
 
     def run(self):
