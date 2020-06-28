@@ -1,5 +1,6 @@
-import rospy
+#!/usr/bin/env python
 
+import rospy
 from astar import *
 from ar_commander.msg import Trajectory
 from std_msgs.msg import Float64MultiArray
@@ -29,6 +30,6 @@ trajectory.theta.data = np.zeros((len(trajectory.x.data),1))
 
 rate = rospy.Rate(10) # 10 Hz
 while not rospy.is_shutdown():
-	pub_trajectory.publish(trajectory)
-	rate.sleep()
+    pub_trajectory.publish(trajectory)
+    rate.sleep()
 

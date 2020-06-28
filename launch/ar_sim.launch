@@ -1,0 +1,7 @@
+<launch>
+    <!-- launch ar_sim -->
+    <include file="$(find gazebo_interface)/launch/gazebo_sim.launch" />
+
+    <!-- launch ar_commander -->
+    <include file="$(find ar_commander)/launch/autonomy_stack.launch" />
+</launch>
