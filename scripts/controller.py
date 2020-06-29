@@ -11,11 +11,9 @@ from ar_commander.msg import Trajectory, ControllerCmd
 from geometry_msgs.msg import Pose2D, Vector3
 
 # Global variables:
-h = [0.35, 0.125, 0.35, 0.125]                  # wheel distances along arms (from end) [ L1 L2 R1 R2 ]
-N = len(h)                                      # number drive motors
-d = np.sqrt(2*(0.475**2))                       # diagonal distance between two arms of robot
-r1 = np.array([0.075, 0.425])                   # axis_offset - (arm_width/2) = 0.075
-r2 = np.array([0.075, 0.425])                   # distacnce between wheels = 0.35
+N = 4                           # number of wheels
+R1 = np.array([0.075, 0.425])   # position of wheels along arm 1
+R2 = np.array([0.075, 0.425])   # "" arm 2
 
 class Controller():
     def __init__(self):
@@ -144,7 +142,7 @@ class Controller():
 
     def convert2motorInputs(self, v_cmd_gf, theta_dot_cmd):
         # Arm frame = af, Robot frame = rf, Global frame = gf
-        v_th_af = np.concatenate((np.zeros((1,N)), (np.concatenate((r1*theta_dot_cmd, r2*theta_dot_cmd))).reshape(1,-1)))
+        v_th_af = np.concatenate((np.zeros((1,N)), (np.concatenate((R1*theta_dot_cmd, R2*theta_dot_cmd))).reshape(1,-1)))
         v_th_rf = np.concatenate((np.matmul(np.array([[0, -1], [1, 0]]), v_th_af[:,0:N/2]), \
                 v_th_af[:,N/2:]), axis=1) # Frame 1 to robot frame: 90 cw, Frame 2 is already aligned
         v_des_rf = np.matmul(np.array([[np.cos(self.theta), np.sin(self.theta)], [-np.sin(self.theta), np.cos(self.theta)]]), v_cmd_gf.reshape(2,1))
