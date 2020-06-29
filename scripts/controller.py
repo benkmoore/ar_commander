@@ -34,7 +34,7 @@ class Controller():
 
         # navigation info (inputs)
         self.pos_des = None
-        self.solution_path = np.array([[None,None]])
+        self.trajectory = np.array([[None,None]])
         self.traj_init = True
 
         # subscribers
@@ -55,7 +55,7 @@ class Controller():
 
     def trajectoryCallback(self, msg):
         print("Received trajectory")
-        self.solution_path = np.concatenate((np.array(msg.x.data).reshape(-1,1), \
+        self.trajectory = np.concatenate((np.array(msg.x.data).reshape(-1,1), \
                                              np.array(msg.y.data).reshape(-1,1), \
                                              np.array(msg.theta.data).reshape(-1,1)), axis=1)
 
@@ -102,15 +102,15 @@ class Controller():
         if self.traj_init == True:
             self.pt_num = 0
             self.pt_prev = self.pos
-            self.pt_next = self.solution_path[0,0:2]
+            self.pt_next = self.trajectory[0,0:2]
             self.traj_init = False
 
         # advance waypoints
         if npl.norm(self.pt_next-self.pos) < 0.25:
-            if self.pt_num+1 < self.solution_path.shape[0]:
+            if self.pt_num+1 < self.trajectory.shape[0]:
                 self.pt_prev = self.pt_next
                 self.pt_num += 1
-                self.pt_next = self.solution_path[self.pt_num,0:2]
+                self.pt_next = self.trajectory[self.pt_num,0:2]
             else:
                 print("Path completed")
                 self.pos_des = Vector3()
@@ -169,7 +169,7 @@ class Controller():
             if self.pos_des != None:
                 self.V_cmd, self.phi_cmd, self.vel = self.pointController()
             # Trajectory controller
-            if self.solution_path[0][0] != None:
+            if self.trajectory[0][0] != None:
                 self.V_cmd, self.phi_cmd, self.vel = self.trajectoryController()
 
     def publish(self):
