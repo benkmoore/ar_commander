@@ -3,15 +3,12 @@
 import rospy
 import numpy as np
 import numpy.linalg as npl
+
 import warnings
 warnings.filterwarnings("error")
 
 from ar_commander.msg import Trajectory, ControllerCmd
-from sensor_msgs.msg import JointState
-from gazebo_msgs.msg import ModelStates
-from std_msgs.msg import Float64, Float64MultiArray
-from geometry_msgs.msg import Pose2D, Twist, Vector3
-from tf.transformations import euler_from_quaternion
+from geometry_msgs.msg import Pose2D, Vector3
 
 # Global variables:
 h = [0.35, 0.125, 0.35, 0.125]                  # wheel distances along arms (from end) [ L1 L2 R1 R2 ]
