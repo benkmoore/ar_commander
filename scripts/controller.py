@@ -19,9 +19,12 @@ class Controller():
     def __init__(self):
         rospy.init_node('controller', anonymous=True)
 
+        # current state
         self.pos = np.array([None, None])
         self.theta = None
         self.vel = np.zeros(2)
+
+        # controller commands (outputs)
         self.phi_cmd = None
         self.V_cmd = None
         self.theta_dot_cmd = 0
@@ -29,21 +32,20 @@ class Controller():
         self.theta_delta_prev = 0
         self.p_delta_prev = 0
 
-        # pointController desired x_f
+        # navigation info (inputs)
         self.pos_des = None
-
-        # trajetory desired path - init
-        self.solution_path = np.array([[None,None]]) #np.array([[1,1],[2,3],[3,5],[2,6],[0,4],[0.5,2],[1,0]])
+        self.solution_path = np.array([[None,None]])
         self.traj_init = True
-
-        # publishers
-        self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
 
         # subscribers
         rospy.Subscriber('/pose', Pose2D, self.poseCallback)
         rospy.Subscriber('/cmd_waypoint', Pose2D, self.waypointCallback)
         rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
 
+        # publishers
+        self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
+
+    ## Callback Functions
     def waypointCallback(self, msg):
         print("Received waypoint")
         self.pos_des = Vector3()
@@ -62,6 +64,7 @@ class Controller():
         self.pos[1] = msg.y
         self.theta = msg.theta
 
+    ## Controller Functions
     def pointController(self):
         kp_1 = 10
         kd_1 = 0
@@ -155,7 +158,7 @@ class Controller():
 
         return V_norm_cmd, phi_cmd
 
-
+    ## Main Loops
     def controlLoop(self):
         # default behavior (0 = Vx Vy theta_dot)
         self.V_cmd = np.zeros(N)
