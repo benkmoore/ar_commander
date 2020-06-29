@@ -34,8 +34,8 @@ class Controller():
 
         # navigation info (inputs)
         self.pos_des = None
-        self.trajectory = np.array([[None,None]])
-        self.traj_init = True
+        self.trajectory = None
+        self.traj_idx = 0
 
         # subscribers
         rospy.Subscriber('/pose', Pose2D, self.poseCallback)
@@ -54,10 +54,11 @@ class Controller():
         self.theta_des = msg.theta
 
     def trajectoryCallback(self, msg):
-        print("Received trajectory")
-        self.trajectory = np.concatenate((np.array(msg.x.data).reshape(-1,1), \
-                                             np.array(msg.y.data).reshape(-1,1), \
-                                             np.array(msg.theta.data).reshape(-1,1)), axis=1)
+        if self.trajectory is None:
+            print("Received trajectory")
+            self.trajectory = np.concatenate((np.array(msg.x.data).reshape(-1,1), \
+                                              np.array(msg.y.data).reshape(-1,1), \
+                                              np.array(msg.theta.data).reshape(-1,1)), axis=1)
 
     def poseCallback(self, msg):
         self.pos[0] = msg.x
@@ -93,24 +94,24 @@ class Controller():
         return V_cmd, phi_cmd, v_cmd
 
     def trajectoryController(self):
+        # gains
         kp_e_p = 12
         kp_e_th = 0.75
         kp_v = 0.5
         V_mag = 6
 
-        # init
-        if self.traj_init == True:
-            self.pt_num = 0
-            self.pt_prev = self.pos
-            self.pt_next = self.trajectory[0,0:2]
-            self.traj_init = False
+        if self.traj_idx == 0:
+            wp_prev = self.pos
+        else:
+            wp_prev = self.trajectory[self.traj_idx-1, 0:2]
+        wp = self.trajectory[self.traj_idx, 0:2]
 
         # advance waypoints
-        if npl.norm(self.pt_next-self.pos) < 0.25:
-            if self.pt_num+1 < self.trajectory.shape[0]:
-                self.pt_prev = self.pt_next
-                self.pt_num += 1
-                self.pt_next = self.trajectory[self.pt_num,0:2]
+        if npl.norm(wp-self.pos) < 0.25:
+            if self.traj_idx+1 < self.trajectory.shape[0]:
+                self.traj_idx += 1
+                wp_prev = wp
+                wp = self.trajectory[self.traj_idx, 0:2]
             else:
                 print("Path completed")
                 self.pos_des = Vector3()
@@ -120,17 +121,17 @@ class Controller():
                 return self.pointController() #np.zeros(N), 0
 
         # fit line/poly and get derivative
-        x = np.array([self.pt_prev[0], self.pt_next[0]])
-        y = np.array([self.pt_prev[1], self.pt_next[1]])
+        x = np.array([wp_prev[0], wp[0]])
+        y = np.array([wp_prev[1], wp[1]])
         try:
             p_y = np.poly1d(np.polyfit(x, y, 1)) # desired y
         except np.RankWarning:
-            p_y = lambda y: self.pt_next[1]
+            p_y = lambda y: wp[1]
         try:
             p_x = np.poly1d(np.polyfit(y, x, 1)) # desired x
         except np.RankWarning:
-            p_x = lambda x: self.pt_next[0]
-        v_des = np.array([self.pt_next[0]-self.pt_prev[0], self.pt_next[1]-self.pt_prev[1]])
+            p_x = lambda x: wp[0]
+        v_des = np.array([wp[0]-wp_prev[0], wp[1]-wp_prev[1]])
 
         v_cmd = kp_v*v_des + kp_e_p*(np.array([p_x(self.pos[1])-self.pos[0], p_y(self.pos[0])-self.pos[1]]))
         v_cmd = V_mag*v_cmd/npl.norm(v_cmd)
@@ -169,7 +170,7 @@ class Controller():
             if self.pos_des != None:
                 self.V_cmd, self.phi_cmd, self.vel = self.pointController()
             # Trajectory controller
-            if self.trajectory[0][0] != None:
+            if self.trajectory is not None:
                 self.V_cmd, self.phi_cmd, self.vel = self.trajectoryController()
 
     def publish(self):
