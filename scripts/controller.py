@@ -97,16 +97,16 @@ class Controller():
         self.vel = None
         self.omega = None
 
+        # navigation info
+        self.trajectory = None
+        self.traj_idx = 0
+
         # initialize controllers
         self.controllers = ControlFunction()
 
-        # controller commands (outputs)
+        # output commands
         self.phi_cmd = None
         self.V_cmd = None
-
-        # navigation info (inputs)
-        self.trajectory = None
-        self.traj_idx = 0
 
         # subscribers
         rospy.Subscriber('/pose', Pose2D, self.poseCallback)
