@@ -121,9 +121,7 @@ class Controller():
     ## Callback Functions
     def trajectoryCallback(self, msg):
         if self.trajectory is None:
-            self.trajectory = np.concatenate((np.array(msg.x.data).reshape(-1,1), \
-                                              np.array(msg.y.data).reshape(-1,1), \
-                                              np.array(msg.theta.data).reshape(-1,1)), axis=1)
+            self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
 
     def poseCallback(self, msg):
         if self.pos is None:
