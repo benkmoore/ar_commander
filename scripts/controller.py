@@ -73,7 +73,7 @@ class Controller():
         kd_1 = 0
         kp_2 = 3
         ki_2 = 0.03
-        kd_2 = 5*(10**-8)
+        kd_2 = 5e-8
 
         p_des = np.array([self.pos_des.x,self.pos_des.y])
         p_delta = p_des-self.pos
@@ -83,7 +83,7 @@ class Controller():
         if npl.norm(p_delta) > 0.01:
             v_cmd = kp_1*p_delta + kd_1*(p_delta-self.p_delta_prev)
         else:
-            v_cmd = np.array([10**-15,10**-15])
+            v_cmd = np.array([1e-15,1e-15])
         theta_dot_cmd = kp_2*theta_delta + ki_2*self.theta_error_sum \
                         + kd_2*(theta_delta-self.theta_delta_prev)
 
