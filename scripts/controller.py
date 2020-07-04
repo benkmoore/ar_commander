@@ -47,7 +47,6 @@ class Controller():
 
     ## Callback Functions
     def waypointCallback(self, msg):
-        print("Received waypoint")
         self.pos_des = Vector3()
         self.pos_des.x = msg.x
         self.pos_des.y = msg.y
@@ -55,7 +54,6 @@ class Controller():
 
     def trajectoryCallback(self, msg):
         if self.trajectory is None:
-            print("Received trajectory")
             self.trajectory = np.concatenate((np.array(msg.x.data).reshape(-1,1), \
                                               np.array(msg.y.data).reshape(-1,1), \
                                               np.array(msg.theta.data).reshape(-1,1)), axis=1)
@@ -115,7 +113,6 @@ class Controller():
                 wp_prev = wp
                 wp = self.trajectory[self.traj_idx, 0:2]
             else:
-                print("Path completed")
                 self.pos_des = Vector3()
                 self.pos_des.x = self.pt_next[0]
                 self.pos_des.y = self.pt_next[1]
