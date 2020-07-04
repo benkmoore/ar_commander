@@ -20,9 +20,9 @@ class Controller():
         rospy.init_node('controller', anonymous=True)
 
         # current state
-        self.pos = np.array([None, None])
+        self.pos = None
         self.theta = None
-        self.vel = np.zeros(2)
+        self.vel = None
 
         # controller commands (outputs)
         self.phi_cmd = None
@@ -61,6 +61,8 @@ class Controller():
                                               np.array(msg.theta.data).reshape(-1,1)), axis=1)
 
     def poseCallback(self, msg):
+        if self.pos is None:
+            self.pos = np.zeros(2)
         self.pos[0] = msg.x
         self.pos[1] = msg.y
         self.theta = msg.theta
@@ -165,9 +167,9 @@ class Controller():
         self.V_cmd = np.zeros(N)
         self.phi_cmd = np.zeros(N) # rads
 
-        if self.pos[0] != None:
+        if self.pos is not None:
             # Point controller
-            if self.pos_des != None:
+            if self.pos_des is not None:
                 self.V_cmd, self.phi_cmd, self.vel = self.pointController()
             # Trajectory controller
             if self.trajectory is not None:
