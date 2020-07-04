@@ -47,21 +47,6 @@ class ControlFunction():
         kp_v = 0.5
         V_mag = 6
 
-        if self.traj_idx == 0:
-            wp_prev = self.pos
-        else:
-            wp_prev = self.trajectory[self.traj_idx-1, 0:2]
-        wp = self.trajectory[self.traj_idx, 0:2]
-
-        # advance waypoints
-        if npl.norm(wp-self.pos) < 0.25:
-            if self.traj_idx+1 < self.trajectory.shape[0]:
-                self.traj_idx += 1
-                wp_prev = wp
-                wp = self.trajectory[self.traj_idx, 0:2]
-            else:
-                return self.pointController()
-
         # fit line/poly and get derivative
         x = np.array([wp_prev[0], wp[0]])
         y = np.array([wp_prev[1], wp[1]])
@@ -127,7 +112,22 @@ class Controller():
         self.pos[1] = msg.y
         self.theta = msg.theta
 
-    ## Helper Function
+    ## Helper Functions
+    def getWaypoint(self):
+        # determine waypoint
+        wp = self.trajectory[self.traj_idx, :]
+
+        # advance waypoints
+        if npl.norm(wp[0:2]-self.pos) < 0.25 and self.traj_idx < self.trajectory.shape[0]:
+            self.traj_idx += 1
+            wp = self.trajectory[self.traj_idx, :]
+
+        if self.traj_idx == 0:
+            wp_prev = np.hstack([self.pos, self.theta])
+        else:
+            wp_prev = self.trajectory[self.traj_idx-1, :]
+        return wp, wp_prev
+
     def convert2motorInputs(self, v_cmd_gf, theta_dot_cmd):
         # Arm frame = af, Robot frame = rf, Global frame = gf
         v_th_af = np.concatenate((np.zeros((1,N)), (np.concatenate((R1*theta_dot_cmd, R2*theta_dot_cmd))).reshape(1,-1)))
@@ -145,13 +145,18 @@ class Controller():
 
     ## Main Loops
     def controlLoop(self):
-        # default behavior (0 = Vx Vy theta_dot)
+        # default behavior
         self.V_cmd = np.zeros(N)
         self.phi_cmd = np.zeros(N) # rads
 
-        if self.pos is not None:    # TODO: Replace this with a mode check
-            if self.trajectory is not None:
-                self.V_cmd, self.phi_cmd, self.vel = self.trajectoryController()
+        if self.pos is not None:    # TODO: Replace this with > init mode check
+            wp, wp_prev = self.getWaypoint()
+            if self.traj_idx < self.trajectory.shape[0]:
+                v_des, w_des = self.trajectoryController()
+            else:
+                v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
+                w_des = self.controllers.thetaController(wp[2], self.pos, self.vel)
+            self.V_cmd, self.phi_cmd = self.convert2motorInputs(v_des,w_des)
 
     def publish(self):
         """ publish cmd messages """
