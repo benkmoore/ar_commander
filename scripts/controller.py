@@ -15,36 +15,30 @@ N = 4                           # number of wheels
 R1 = np.array([0.075, 0.425])   # position of wheels along arm 1
 R2 = np.array([0.075, 0.425])   # "" arm 2
 
-class controlFunction():
-    def __init__():
+class ControlFunction():
+    def __init__(self):
+        self.theta_error_sum = 0
+
+    def resetController(self):
         self.theta_error_sum = 0
 
     ## Controller Functions
-    def pointController(self, p_des, th_des):
-        kp_1 = 10
-        kd_1 = 0
-        kp_2 = 3
-        ki_2 = 0.03
-        kd_2 = 5e-8
+    def thetaController(self, theta_des, theta, omega):
+        kp = 3
+        ki = 0.03
+        kd = 5e-8
 
-        p_delta = p_des-self.pos
-        theta_delta = theta_des-self.theta
-        self.theta_error_sum += theta_delta
+        theta_err = theta_des - theta
+        theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
+        return theta_dot_cmd
 
-        if npl.norm(p_delta) > 0.01:
-            v_cmd = kp_1*p_delta + kd_1*(p_delta - p_delta_prev)
-        else:
-            v_cmd = np.array([1e-15,1e-15])
-        theta_dot_cmd = kp_2*theta_delta + ki_2*self.theta_error_sum \
-                        + kd_2*(theta_delta - self.theta_delta_prev)
+    def pointController(self, pos_des, pos, vel):
+        kp = 10
+        kd = 0
 
-        self.theta_delta_prev = theta_delta
-        self.p_delta_prev = p_delta
-
-        # Convert to motor inputs
-        V_cmd, phi_cmd = self.convert2motorInputs(v_cmd, theta_dot_cmd)
-
-        return V_cmd, phi_cmd, v_cmd
+        p_err = pos_des - pos
+        v_cmd = kp*p_err + kd*vel
+        return v_cmd
 
     def trajectoryController(self):
         # gains
@@ -102,6 +96,9 @@ class Controller():
         self.theta = None
         self.vel = None
         self.omega = None
+
+        # initialize controllers
+        self.controllers = ControlFunction()
 
         # controller commands (outputs)
         self.phi_cmd = None
