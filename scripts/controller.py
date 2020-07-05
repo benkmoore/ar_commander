@@ -159,14 +159,19 @@ class ControlNode():
 
     def convert2motorInputs(self, v_cmd_gf, theta_dot_cmd):
         # Arm frame = af, Robot frame = rf, Global frame = gf
-        v_th_af = np.concatenate((np.zeros((1,N)), (np.concatenate((R1*theta_dot_cmd, R2*theta_dot_cmd))).reshape(1,-1)))
-        v_th_rf = np.concatenate((np.matmul(np.array([[0, -1], [1, 0]]), v_th_af[:,0:N/2]), \
-                v_th_af[:,N/2:]), axis=1) # Frame 1 to robot frame: 90 cw, Frame 2 is already aligned
-        v_des_rf = np.matmul(np.array([[np.cos(self.theta), np.sin(self.theta)], [-np.sin(self.theta), np.cos(self.theta)]]), v_cmd_gf.reshape(2,1))
 
-        V_cmd = np.repeat(v_des_rf, N, axis=1) + v_th_rf # Command in rf
-        V_cmd = np.array(V_cmd, dtype=np.float64)
+        # Compute desired velocity of each wheel in robot frame
+        R = np.array([[np.cos(self.theta), np.sin(self.theta)],     # rotation matrix
+                      [-np.sin(self.theta), np.cos(self.theta)]])
+        v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]
 
+        v_th1 = np.vstack([-R1*theta_dot_cmd, np.zeros(N/2)])
+        v_th2 = np.vstack([np.zeros(N/2), R2*theta_dot_cmd])
+        v_th_rf = np.hstack([v_th1, v_th2])
+
+        V_cmd = v_cmd_rf + v_th_rf
+
+        # Convert to |V| and phi
         V_norm_cmd = npl.norm(V_cmd, axis=0)
         phi_cmd = np.arctan2(V_cmd[1,:], V_cmd[0,:]) + np.pi/2
 
