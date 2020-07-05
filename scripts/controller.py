@@ -157,7 +157,7 @@ class ControlNode():
             wp_prev = self.trajectory[self.traj_idx-1, :]
         return wp, wp_prev
 
-    def convert2motorInputs(self, v_cmd_gf, theta_dot_cmd):
+    def convert2MotorInputs(self, v_cmd_gf, theta_dot_cmd):
         # Arm frame = af, Robot frame = rf, Global frame = gf
 
         # Compute desired velocity of each wheel in robot frame
@@ -191,7 +191,7 @@ class ControlNode():
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
 
-            self.V_cmd, self.phi_cmd = self.convert2motorInputs(v_des,w_des)
+            self.V_cmd, self.phi_cmd = self.convert2MotorInputs(v_des,w_des)
 
     def publish(self):
         """ publish cmd messages """
