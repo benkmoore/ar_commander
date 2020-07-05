@@ -4,9 +4,6 @@ import rospy
 import numpy as np
 import numpy.linalg as npl
 
-import warnings
-warnings.filterwarnings("error")
-
 from ar_commander.msg import Trajectory, ControllerCmd
 from geometry_msgs.msg import Pose2D, Vector3
 
@@ -51,14 +48,17 @@ class ControlFunction():
         # fit line/poly and get derivative
         x = np.array([wp_prev[0], wp[0]])
         y = np.array([wp_prev[1], wp[1]])
-        try:
-            p_y = np.poly1d(np.polyfit(x, y, 1)) # desired y
-        except np.RankWarning:
+
+        if wp[0] == wp_prev[0]:
             p_y = lambda y: wp[1]
-        try:
-            p_x = np.poly1d(np.polyfit(y, x, 1)) # desired x
-        except np.RankWarning:
+        else:
+            p_y = np.poly1d(np.polyfit(x, y, 1)) # desired y
+
+        if wp[1] == wp_prev[1]:
             p_x = lambda x: wp[0]
+        else:
+            p_x = np.poly1d(np.polyfit(y, x, 1)) # desired x
+
         x_des = p_x(pos[1])
         y_des = p_y(pos[0])
         pos_des = np.array([x_des,y_des])
@@ -112,7 +112,6 @@ class Controller():
     def trajectoryCallback(self, msg):
         if self.trajectory is None:
             self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
-            self.trajectory = np.array([[1,1,0],[2,2,0]])
 
     def poseCallback(self, msg):
         if self.pos is None:
