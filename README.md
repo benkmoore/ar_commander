@@ -5,37 +5,37 @@ GNC code for analytical robotics
 
 `controller.py`: Controls robot in the
 form of a desired waypoint
-`/cmd\_waypoint` or trajectory
-`/cmd\_trajectory` on the
-`/controller\_cmds` topic.
+`/cmd_waypoint` or trajectory
+`/cmd_trajectory` on the
+`/controller_cmds` topic.
 
 `navigator.py`: Acts as a container for
 calling a desired trajectory finding algorithm and publishes the
-trajectory to `/cmd\_trajectory`.
+trajectory to `/cmd_trajectory`.
 
 `astar.py`: Given start, end points and
 a map finds a trajectory if one exists and returns it to
 `navigator.py`.
 
-`sim\_interface.py`: serves to transfer data
+`sim_interface.py`: serves to transfer data
 to and from controller with the simulation environment, gazebo.
 Conversts sim model state messages
-`/gazebo/model\_states`. to the
+`/gazebo/model_states`. to the
 `/pose` topic in Pose2D format. Receives
-controller commands `/controller\_cmds`
+controller commands `/controller_cmds`
 and converts to sim inputs
-`robot\_0/joint\$\i\\_position\_controller/command`.
+`robot_0/joint${i}_position_controller/command`.
 
-`motor\_interface.py`: setups and initializes motor interface. Receives controller commands, `/controller\_cmds` and commands motors as desired. Requires operating pins of motors.
+`motor_interface.py`: setups and initializes motor interface. Receives controller commands, `/controller_cmds` and commands motors as desired. Requires operating pins of motors.
 
 ## Running the simulation and controller
 
-1. start gazebo: `roslaunch gazebo\_interface gazebo\_sim.launch\\`
+1. start gazebo: `roslaunch gazebo_interface gazebo_sim.launch`
 2. start controller: `python controller.py`
-3. setup sim interface: `python sim\_interface.py`
+3. setup sim interface: `python sim_interface.py`
 
 Command a waypoint: * From command line:
-`rostopic pub -r 10 /cmd\_waypoint geometry\_msgs/Pose2D '\x: 0.0, y: 6.0, theta: 1.0\`
+`rostopic pub -r 10 /cmd_waypoint geometry_msgs/Pose2D 'x: 0.0, y: 6.0, theta: 1.0`
 
 Command a trajectory: * the start, end points and map can be defined in
 `navigator.py` *
