@@ -80,8 +80,13 @@ class Controller():
         # current state
         self.pos = None
         self.theta = None
-        self.vel = None
-        self.omega = None
+        self.vel = 0
+        self.omega = 0
+
+        # Previous state for estimating velocities
+        # TODO: remove these once the estimator is implemented
+        self.pos_prev = None
+        self.theta_prev = None
 
         # navigation info
         self.trajectory = None
@@ -112,8 +117,21 @@ class Controller():
         self.pos[0] = msg.x
         self.pos[1] = msg.y
         self.theta = msg.theta
+        self.estimateVelocities()
 
     ## Helper Functions
+    def estimateVelocities(self):
+        """Estimate velocities using previous state"""
+        # TODO: Remove this function once the esimator is implemented
+
+        if self.pos_prev is None:
+            self.pos_prev = self.pos
+            self.theta_prev = self.theta
+
+        dt = 1/RATE
+        self.vel = (self.pos - self.pos_prev)/dt
+        self.omega = (self.theta - self.theta_prev)/dt
+
     def getWaypoint(self):
         # determine waypoint
         wp = self.trajectory[self.traj_idx, :]
@@ -156,7 +174,7 @@ class Controller():
                 v_des, w_des = self.trajectoryController()
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
-                w_des = self.controllers.thetaController(wp[2], self.pos, self.vel)
+                w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
             self.V_cmd, self.phi_cmd = self.convert2motorInputs(v_des,w_des)
 
     def publish(self):
