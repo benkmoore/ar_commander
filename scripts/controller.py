@@ -113,7 +113,7 @@ class Controller():
 
     def poseCallback(self, msg):
         if self.pos is None:
-            self.pos = np.zeros(N)
+            self.pos = np.zeros(2)
         self.pos[0] = msg.x
         self.pos[1] = msg.y
         self.theta = msg.theta
@@ -128,7 +128,7 @@ class Controller():
             self.pos_prev = self.pos
             self.theta_prev = self.theta
 
-        dt = 1/RATE
+        dt = 1./RATE
         self.vel = (self.pos - self.pos_prev)/dt
         self.omega = (self.theta - self.theta_prev)/dt
 
@@ -137,7 +137,7 @@ class Controller():
         wp = self.trajectory[self.traj_idx, :]
 
         # advance waypoints
-        if npl.norm(wp[0:2]-self.pos) < 0.25 and self.traj_idx < self.trajectory.shape[0]:
+        if npl.norm(wp[0:2]-self.pos) < 0.25 and self.traj_idx < self.trajectory.shape[0]-1:
             self.traj_idx += 1
             wp = self.trajectory[self.traj_idx, :]
 
@@ -168,9 +168,9 @@ class Controller():
         self.V_cmd = np.zeros(N)
         self.phi_cmd = np.zeros(N) # rads
 
-        if self.pos is not None:    # TODO: Replace this with > init mode check
+        if self.pos is not None and self.trajectory is not None:    # TODO: Replace this with > init mode check
             wp, wp_prev = self.getWaypoint()
-            if self.traj_idx < self.trajectory.shape[0]:
+            if self.traj_idx < self.trajectory.shape[0]-1:
                 v_des, w_des = self.trajectoryController()
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
