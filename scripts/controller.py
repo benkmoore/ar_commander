@@ -41,12 +41,12 @@ class ControlFunction():
         v_cmd = kp*p_err + kd*vel
         return v_cmd
 
-    def trajectoryController(self):
+    def trajectoryController(self, pos, vel, theta, wp, wp_prev):
         # gains
-        kp_e_p = 12
-        kp_e_th = 0.75
-        kp_v = 0.5
-        V_mag = 6
+        kp_pos = 12
+        kp_th = 0.75
+        kd_pos = 0.5
+        v_mag = 6
 
         # fit line/poly and get derivative
         x = np.array([wp_prev[0], wp[0]])
@@ -59,18 +59,20 @@ class ControlFunction():
             p_x = np.poly1d(np.polyfit(y, x, 1)) # desired x
         except np.RankWarning:
             p_x = lambda x: wp[0]
-        v_des = np.array([wp[0]-wp_prev[0], wp[1]-wp_prev[1]])
+        x_des = p_x(pos[1])
+        y_des = p_y(pos[0])
+        pos_des = np.array([x_des,y_des])
 
-        v_cmd = kp_v*v_des + kp_e_p*(np.array([p_x(self.pos[1])-self.pos[0], p_y(self.pos[0])-self.pos[1]]))
-        v_cmd = V_mag*v_cmd/npl.norm(v_cmd)
-        self.theta_des = np.arctan2(v_cmd[1], v_cmd[0]) - np.pi/2
-        theta_delta = self.theta_des-self.theta
-        theta_dot_cmd = kp_e_th*(theta_delta)
+        v_des = (wp-wp_prev)[0:2]
 
-        # Convert to motor inputs
-        V_cmd, phi_cmd = self.convert2motorInputs(v_cmd, theta_dot_cmd)
+        v_cmd = kd_pos*v_des + kp_pos*(pos_des-pos)
+        v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
 
-        return V_cmd, phi_cmd, v_cmd
+        theta_des = wp[2]
+        theta_err = theta_des - theta
+        omega_cmd = kp_th*theta_err
+
+        return v_cmd, omega_cmd
 
 
 class Controller():
@@ -110,6 +112,7 @@ class Controller():
     def trajectoryCallback(self, msg):
         if self.trajectory is None:
             self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
+            self.trajectory = np.array([[1,1,0],[2,2,0]])
 
     def poseCallback(self, msg):
         if self.pos is None:
@@ -171,7 +174,7 @@ class Controller():
         if self.pos is not None and self.trajectory is not None:    # TODO: Replace this with > init mode check
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.trajectoryController()
+                v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
