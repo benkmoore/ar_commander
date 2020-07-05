@@ -157,16 +157,16 @@ class ControlNode():
             wp_prev = self.trajectory[self.traj_idx-1, :]
         return wp, wp_prev
 
-    def convert2MotorInputs(self, v_cmd_gf, theta_dot_cmd):
-        # Arm frame = af, Robot frame = rf, Global frame = gf
+    def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
+        """Convert velocity and omega commands to motor inputs"""
 
-        # Compute desired velocity of each wheel in robot frame
+        # convert inputs to robot frame velocity commands
         R = np.array([[np.cos(self.theta), np.sin(self.theta)],     # rotation matrix
                       [-np.sin(self.theta), np.cos(self.theta)]])
-        v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]
+        v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
 
-        v_th1 = np.vstack([-R1*theta_dot_cmd, np.zeros(N/2)])
-        v_th2 = np.vstack([np.zeros(N/2), R2*theta_dot_cmd])
+        v_th1 = np.vstack([-R1*omega_cmd, np.zeros(N/2)])
+        v_th2 = np.vstack([np.zeros(N/2), R2*omega_cmd])
         v_th_rf = np.hstack([v_th1, v_th2])
 
         V_cmd = v_cmd_rf + v_th_rf
