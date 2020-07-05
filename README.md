@@ -43,5 +43,10 @@ Command a trajectory: * the start, end points and map can be defined in
 
 ## Setup Jetson Nano
 
+## SSH into Nano
+1. Connect to local wifi network on nano, configure wifi conenction to automcatiocally connect for all users in netwrok settings.
+2. Check you can ping nano address from laptop : ping ---nano-ip-address---
+3. SSH into nano from laptop: ssh username@---nano-ip-address---
+
 ### Configuring pins
 Configure pins as desired for use, follow instructions at: [nividia_pin_docs](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/hw_setup_jetson_io.html)
