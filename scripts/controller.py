@@ -9,11 +9,15 @@ from geometry_msgs.msg import Pose2D, Vector3
 
 ## Global variables:
 RATE = 10                       # rate in Hz
+
+# TODO: Move these into robot configuration file
 N = 4                           # number of wheels
 R1 = np.array([0.075, 0.425])   # position of wheels along arm 1
 R2 = np.array([0.075, 0.425])   # "" arm 2
 
-class ControlFunction():
+class ControlLoops():
+    """Handle the controller loops"""
+
     def __init__(self):
         self.theta_error_sum = 0
 
@@ -74,8 +78,12 @@ class ControlFunction():
 
         return v_cmd, omega_cmd
 
+class ControlNode():
+    """
+    Main controller node
+    Handles inputs, outputs and main control logic
+    """
 
-class Controller():
     def __init__(self):
         rospy.init_node('controller', anonymous=True)
 
@@ -95,7 +103,7 @@ class Controller():
         self.traj_idx = 0
 
         # initialize controllers
-        self.controllers = ControlFunction()
+        self.controllers = ControlLoops()
 
         # output commands
         self.phi_cmd = None
@@ -177,6 +185,7 @@ class Controller():
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
+
             self.V_cmd, self.phi_cmd = self.convert2motorInputs(v_des,w_des)
 
     def publish(self):
@@ -195,5 +204,5 @@ class Controller():
 
 
 if __name__ == '__main__':
-    controller = Controller()
+    controller = ControlNode()
     controller.run()
