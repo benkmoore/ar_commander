@@ -10,7 +10,8 @@ warnings.filterwarnings("error")
 from ar_commander.msg import Trajectory, ControllerCmd
 from geometry_msgs.msg import Pose2D, Vector3
 
-# Global variables:
+## Global variables:
+RATE = 10                       # rate in Hz
 N = 4                           # number of wheels
 R1 = np.array([0.075, 0.425])   # position of wheels along arm 1
 R2 = np.array([0.075, 0.425])   # "" arm 2
@@ -166,7 +167,7 @@ class Controller():
         self.pub_cmds.publish(self.cmds)
 
     def run(self):
-        rate = rospy.Rate(10) # 10 Hz
+        rate = rospy.Rate(RATE) # 10 Hz
         while not rospy.is_shutdown():
             self.controlLoop()
             self.publish()
