@@ -34,10 +34,10 @@ and converts to sim inputs
 2. start controller: `python controller.py`
 3. setup sim interface: `python sim_interface.py`
 
-Command a waypoint: From command line
-`rostopic pub -r 10 /cmd_waypoint geometry_msgs/Pose2D 'x: 0.0, y: 6.0, theta: 1.0`
+Command a trajectory: From command line
+`rostopic pub /cmd_trajectory ar_commander/Trajectory '{x: {data:[1]}, y: {data:[1]}, theta: {data:[3]}}'`
 
-Command a trajectory: The start, end points and map can be defined in `navigator.py`.
+The trajectory start, end points and map can be defined in `navigator.py`.
 `python navigator.py`
 
 ## Setup Jetson Nano
