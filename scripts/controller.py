@@ -3,9 +3,10 @@
 import rospy
 import numpy as np
 import numpy.linalg as npl
+from stateMachine import Mode
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
-from geometry_msgs.msg import Pose2D, Vector3
+from std_msgs.msg import Int8
 
 ## Global variables:
 RATE = 10                       # rate in Hz
@@ -93,6 +94,8 @@ class ControlNode():
         self.vel = 0
         self.omega = 0
 
+        self.mode = None
+
         # navigation info
         self.trajectory = None
         self.traj_idx = 0
@@ -107,6 +110,7 @@ class ControlNode():
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
+        rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
 
         # publishers
         self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
@@ -121,6 +125,9 @@ class ControlNode():
         self.vel = np.array(msg.vel.data)
         self.theta = msg.theta.data
         self.omega = msg.omega.data
+
+    def modeCallback(self,msg):
+        self.mode = Mode(msg.data)
 
     ## Helper Functions
     def getWaypoint(self):
@@ -164,7 +171,7 @@ class ControlNode():
         self.V_cmd = np.zeros(N)
         self.phi_cmd = np.zeros(N) # rads
 
-        if self.pos is not None and self.trajectory is not None:    # TODO: Replace this with > init mode check
+        if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
                 v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
