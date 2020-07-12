@@ -41,7 +41,6 @@ class Navigator():
         self.astar = AStar((0, 0), (self.map_width, self.map_height), self.start_pos, self.end_pos, occupancy)
 
         if not self.astar.solve():
-            print("No path found")
             exit(0)
 
         self.trajectory = Trajectory()
@@ -62,13 +61,10 @@ class Navigator():
         while not rospy.is_shutdown() and not self.trajectory_complete:
             if self.trajectory == None and self.start_pos[0] != None:
                 self.callAstar()
-                print("Path found...")
             if self.trajectory != None:
                 self.publish()
-                print("Trajectory published...")
                 self.testTrajectoryComplete()
             rate.sleep()
-        print("Navigator exiting...")
 
 if __name__ == '__main__':
     navigator = Navigator()
