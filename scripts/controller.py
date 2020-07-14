@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import rospy
 import numpy as np
 import numpy.linalg as npl
@@ -7,9 +8,16 @@ import numpy.linalg as npl
 from ar_commander.msg import Trajectory, ControllerCmd
 from geometry_msgs.msg import Pose2D, Vector3
 
-## Global variables:
-RATE = 10                       # rate in Hz
+mode = rospy.get_param("ENV")
+if mode == "sim":
+    from sim_params import *
+elif mode == "hardware":
+    from hardware_params import *
+else:
+    print("Controller ENV not valid")
+    sys.exit()
 
+## Global variables:
 # TODO: Move these into robot configuration file
 N = 4                           # number of wheels
 R1 = np.array([0.075, 0.425])   # position of wheels along arm 1
@@ -26,17 +34,17 @@ class ControlLoops():
 
     ## Controller Functions
     def thetaController(self, theta_des, theta, omega):
-        kp = 3
-        ki = 0.03
-        kd = 5e-8
+        kp = thetaControllerGains['kp']
+        ki = thetaControllerGains['ki']
+        kd = thetaControllerGains['kd']
 
         theta_err = theta_des - theta
         theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
         return theta_dot_cmd
 
     def pointController(self, pos_des, pos, vel):
-        kp = 10
-        kd = 0
+        kp = pointControllerGains['kp']
+        kd = pointControllerGains['kd']
 
         p_err = pos_des - pos
         v_cmd = kp*p_err + kd*vel
@@ -44,10 +52,10 @@ class ControlLoops():
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
         # gains
-        kp_pos = 12
-        kp_th = 0.75
-        kd_pos = 0.5
-        v_mag = 6
+        kp_pos = trajectoryControllerGains['kp_pos']
+        kp_th = trajectoryControllerGains['kp_th']
+        kd_pos = trajectoryControllerGains['kd_pos']
+        v_mag = trajectoryControllerGains['v_mag']
 
         # fit line/poly and get derivative
         x = np.array([wp_prev[0], wp[0]])

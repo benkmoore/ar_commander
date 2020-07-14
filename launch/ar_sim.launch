@@ -1,4 +1,7 @@
 <launch>
+    <!-- Set enviroment variable to sim -->
+    <param name="ENV" value="sim"/>
+
     <!-- launch ar_sim -->
     <include file="$(find gazebo_interface)/launch/gazebo_sim.launch" />
 
