@@ -8,10 +8,10 @@ import numpy.linalg as npl
 from ar_commander.msg import Trajectory, ControllerCmd
 from geometry_msgs.msg import Pose2D, Vector3
 
-mode = rospy.get_param("ENV")
-if mode == "sim":
+env = rospy.get_param("ENV")
+if env == "sim":
     from sim_params import *
-elif mode == "hardware":
+elif env == "hardware":
     from hardware_params import *
 else:
     print("Controller ENV not valid")
