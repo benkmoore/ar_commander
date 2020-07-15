@@ -1,6 +1,9 @@
 <launch>
     <!-- Set enviroment variable to sim -->
-    <param name="ENV" value="sim"/>
+    <param name="ENV" value="sim" />
+
+    <!-- Set path to ar_commander repo -->
+    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
 
     <!-- launch ar_sim -->
     <include file="$(find gazebo_interface)/launch/gazebo_sim.launch" />

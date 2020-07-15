@@ -9,19 +9,19 @@ from ar_commander.msg import Trajectory, ControllerCmd
 from geometry_msgs.msg import Pose2D, Vector3
 
 env = rospy.get_param("ENV")
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+
 if env == "sim":
-    from sim_params import *
+    from configs.sim_params import *
 elif env == "hardware":
-    from hardware_params import *
+    from configs.hardware_params import *
 else:
-    print("Controller ENV not valid")
+    rospy.init_node('controller', anonymous=True)
+    rospy.logerr("Controller ENV: %s is not valid. Select from [sim, hardware]", env)
     sys.exit()
 
-## Global variables:
-# TODO: Move these into robot configuration file
-N = 4                           # number of wheels
-R1 = np.array([0.075, 0.425])   # position of wheels along arm 1
-R2 = np.array([0.075, 0.425])   # "" arm 2
+## Global variables
+from configs.robot_v1 import *
 
 class ControlLoops():
     """Handle the controller loops"""
@@ -146,7 +146,7 @@ class ControlNode():
             self.pos_prev = self.pos
             self.theta_prev = self.theta
 
-        dt = 1./RATE
+        dt = 1./CONTROLLER_RATE
         self.vel = (self.pos - self.pos_prev)/dt
         self.omega = (self.theta - self.theta_prev)/dt
 
@@ -209,7 +209,7 @@ class ControlNode():
         self.pub_cmds.publish(self.cmds)
 
     def run(self):
-        rate = rospy.Rate(RATE) # 10 Hz
+        rate = rospy.Rate(CONTROLLER_RATE)
         while not rospy.is_shutdown():
             self.controlLoop()
             self.publish()

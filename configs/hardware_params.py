@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-RATE = 60                       # rate in Hz
+CONTROLLER_RATE = 60                       # rate in Hz
 
 thetaControllerGains = {'kp':175, 'ki':0.03, 'kd':5e-8}
 
