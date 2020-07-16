@@ -12,16 +12,14 @@ env = rospy.get_param("ENV")
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 if env == "sim":
-    from configs.sim_params import *
+    import configs.sim_params as params
 elif env == "hardware":
-    from configs.hardware_params import *
+    import configs.hardware_params as params
 else:
-    rospy.init_node('controller', anonymous=True)
-    rospy.logerr("Controller ENV: %s is not valid. Select from [sim, hardware]", env)
-    sys.exit()
+    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
 ## Global variables
-from configs.robot_v1 import *
+import configs.robot_v1 as rcfg
 
 class ControlLoops():
     """Handle the controller loops"""
@@ -34,17 +32,17 @@ class ControlLoops():
 
     ## Controller Functions
     def thetaController(self, theta_des, theta, omega):
-        kp = thetaControllerGains['kp']
-        ki = thetaControllerGains['ki']
-        kd = thetaControllerGains['kd']
+        kp = params.thetaControllerGains['kp']
+        ki = params.thetaControllerGains['ki']
+        kd = params.thetaControllerGains['kd']
 
         theta_err = theta_des - theta
         theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
         return theta_dot_cmd
 
     def pointController(self, pos_des, pos, vel):
-        kp = pointControllerGains['kp']
-        kd = pointControllerGains['kd']
+        kp = params.pointControllerGains['kp']
+        kd = params.pointControllerGains['kd']
 
         p_err = pos_des - pos
         v_cmd = kp*p_err + kd*vel
@@ -52,10 +50,10 @@ class ControlLoops():
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
         # gains
-        kp_pos = trajectoryControllerGains['kp_pos']
-        kp_th = trajectoryControllerGains['kp_th']
-        kd_pos = trajectoryControllerGains['kd_pos']
-        v_mag = trajectoryControllerGains['v_mag']
+        kp_pos = params.trajectoryControllerGains['kp_pos']
+        kp_th = params.trajectoryControllerGains['kp_th']
+        kd_pos = params.trajectoryControllerGains['kd_pos']
+        v_mag = params.trajectoryControllerGains['v_mag']
 
         # fit line/poly and get derivative
         x = np.array([wp_prev[0], wp[0]])
@@ -146,7 +144,7 @@ class ControlNode():
             self.pos_prev = self.pos
             self.theta_prev = self.theta
 
-        dt = 1./CONTROLLER_RATE
+        dt = 1./params.CONTROLLER_RATE
         self.vel = (self.pos - self.pos_prev)/dt
         self.omega = (self.theta - self.theta_prev)/dt
 
@@ -173,8 +171,8 @@ class ControlNode():
                       [-np.sin(self.theta), np.cos(self.theta)]])
         v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
 
-        v_th1 = np.vstack([-R1*omega_cmd, np.zeros(N/2)])
-        v_th2 = np.vstack([np.zeros(N/2), R2*omega_cmd])
+        v_th1 = np.vstack([-rcfg.R1*omega_cmd, np.zeros(rcfg.N/2)])
+        v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
         v_th_rf = np.hstack([v_th1, v_th2])
 
         V_cmd = v_cmd_rf + v_th_rf
@@ -188,8 +186,8 @@ class ControlNode():
     ## Main Loops
     def controlLoop(self):
         # default behavior
-        self.V_cmd = np.zeros(N)
-        self.phi_cmd = np.zeros(N) # rads
+        self.V_cmd = np.zeros(rcfg.N)
+        self.phi_cmd = np.zeros(rcfg.N) # rads
 
         if self.pos is not None and self.trajectory is not None:    # TODO: Replace this with > init mode check
             wp, wp_prev = self.getWaypoint()
@@ -209,7 +207,7 @@ class ControlNode():
         self.pub_cmds.publish(self.cmds)
 
     def run(self):
-        rate = rospy.Rate(CONTROLLER_RATE)
+        rate = rospy.Rate(params.CONTROLLER_RATE)
         while not rospy.is_shutdown():
             self.controlLoop()
             self.publish()

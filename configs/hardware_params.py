@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 CONTROLLER_RATE = 60                       # rate in Hz
 
