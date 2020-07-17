@@ -4,9 +4,10 @@ import sys
 import rospy
 import numpy as np
 import numpy.linalg as npl
+from stateMachine import Mode
 
-from ar_commander.msg import Trajectory, ControllerCmd
-from geometry_msgs.msg import Pose2D, Vector3
+from ar_commander.msg import Trajectory, ControllerCmd, State
+from std_msgs.msg import Int8
 
 env = rospy.get_param("ENV")
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
@@ -99,10 +100,7 @@ class ControlNode():
         self.vel = 0
         self.omega = 0
 
-        # Previous state for estimating velocities
-        # TODO: remove these once the estimator is implemented
-        self.pos_prev = None
-        self.theta_prev = None
+        self.mode = None
 
         # navigation info
         self.trajectory = None
@@ -116,8 +114,9 @@ class ControlNode():
         self.V_cmd = None
 
         # subscribers
-        rospy.Subscriber('/pose', Pose2D, self.poseCallback)
+        rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
+        rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
 
         # publishers
         self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
@@ -127,27 +126,16 @@ class ControlNode():
         if self.trajectory is None:
             self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
 
-    def poseCallback(self, msg):
-        if self.pos is None:
-            self.pos = np.zeros(2)
-        self.pos[0] = msg.x
-        self.pos[1] = msg.y
-        self.theta = msg.theta
-        self.estimateVelocities()
+    def stateCallback(self, msg):
+        self.pos = np.array(msg.pos.data)
+        self.vel = np.array(msg.vel.data)
+        self.theta = msg.theta.data
+        self.omega = msg.omega.data
 
-    ## Helper Functions
-    def estimateVelocities(self):
-        """Estimate velocities using previous state"""
-        # TODO: Remove this function once the esimator is implemented
+    def modeCallback(self,msg):
+        self.mode = Mode(msg.data)
 
-        if self.pos_prev is None:
-            self.pos_prev = self.pos
-            self.theta_prev = self.theta
-
-        dt = 1./params.CONTROLLER_RATE
-        self.vel = (self.pos - self.pos_prev)/dt
-        self.omega = (self.theta - self.theta_prev)/dt
-
+    ## Helper Functions        
     def getWaypoint(self):
         # determine waypoint
         wp = self.trajectory[self.traj_idx, :]
@@ -189,7 +177,7 @@ class ControlNode():
         self.V_cmd = np.zeros(rcfg.N)
         self.phi_cmd = np.zeros(rcfg.N) # rads
 
-        if self.pos is not None and self.trajectory is not None:    # TODO: Replace this with > init mode check
+        if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
                 v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
