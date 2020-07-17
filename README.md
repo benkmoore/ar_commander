@@ -28,11 +28,9 @@ and converts to sim inputs
 
 `motor_interface.py`: setups and initializes motor interface. Receives controller commands, `/controller_cmds` and commands motors as desired. Requires operating pins of motors.
 
-## Running the simulation and controller
+## Running the simulation and autonomy stack
 
-1. start gazebo: `roslaunch gazebo_interface gazebo_sim.launch`
-2. start controller: `python controller.py`
-3. setup sim interface: `python sim_interface.py`
+1. To run the sim and autonomy stack run from launch file folder: `roslaunch ar_sim.launch`
 
 Command a trajectory: From command line
 `rostopic pub /cmd_trajectory ar_commander/Trajectory '{x: {data:[1]}, y: {data:[1]}, theta: {data:[3]}}'`
