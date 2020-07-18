@@ -53,6 +53,7 @@ add_message_files(
     State.msg
     Trajectory.msg
     ControllerCmd.msg
+    TOF.msg
 )
 
 ## Generate services in the 'srv' folder
