@@ -44,15 +44,6 @@ class EstimatorOL():
             return
 
         dt = 1. / RATE
-        print("cmd")
-        print(self.vel_cmd)
-        print(self.omega_cmd)
-        print("state")
-        print(self.state.pos.data)
-        print(self.state.theta.data)
-        print("")
-
-
         self.state.pos.data = self.state.pos.data + self.vel_cmd*dt
         self.state.theta.data = self.state.theta.data + self.omega_cmd*dt
 
