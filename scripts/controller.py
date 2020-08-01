@@ -174,16 +174,14 @@ class ControlNode():
         phi_diff = phi_cmd - self.phi_prev
         idx = abs(phi_diff) > np.pi/2
         phi_cmd -= np.pi*np.sign(phi_diff)*idx
-        v_wheel *= -1*idx
+        v_wheel *= -1*idx + 1*~idx
 
         # enforce physical bounds
         idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
         idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
 
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
-        v_wheel *= -1*(idx_upper+idx_lower)
-
-        self.phi_prev = phi_cmd     # store previous command
+        v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
         return v_wheel, phi_cmd
 
@@ -202,6 +200,7 @@ class ControlNode():
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
 
             self.V_cmd, self.phi_cmd = self.convert2MotorInputs(v_des,w_des)
+            self.phi_prev = self.phi_cmd     # store previous command
 
     def publish(self):
         """ publish cmd messages """
