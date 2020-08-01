@@ -19,7 +19,6 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
-## Global variables
 import configs.robot_v1 as rcfg
 
 class ControlLoops():
@@ -102,6 +101,8 @@ class ControlNode():
 
         self.mode = None
 
+        self.phi_prev = np.zeros(rcfg.N)   # can initialize to 0 as it will only affect first command
+
         # navigation info
         self.trajectory = None
         self.traj_idx = 0
@@ -163,13 +164,21 @@ class ControlNode():
         v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
         v_th_rf = np.hstack([v_th1, v_th2])
 
-        V_cmd = v_cmd_rf + v_th_rf
+        v_xy = v_cmd_rf + v_th_rf
 
         # Convert to |V| and phi
-        V_norm_cmd = npl.norm(V_cmd, axis=0)
-        phi_cmd = np.arctan2(V_cmd[1,:], V_cmd[0,:]) + np.pi/2
+        v_wheel = npl.norm(v_xy, axis=0)
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) + np.pi/2
 
-        return V_norm_cmd, phi_cmd
+        # pick closest phi
+        phi_diff = phi_cmd - self.phi_prev
+        idx = abs(phi_diff) > np.pi/2
+        phi_cmd -= np.pi*np.sign(phi_diff)*idx
+        v_wheel *= -1*idx
+
+        self.phi_prev = phi_cmd
+
+        return v_wheel, phi_cmd
 
     ## Main Loops
     def controlLoop(self):
