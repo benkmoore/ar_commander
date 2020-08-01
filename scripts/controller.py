@@ -135,7 +135,7 @@ class ControlNode():
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
 
-    ## Helper Functions        
+    ## Helper Functions
     def getWaypoint(self):
         # determine waypoint
         wp = self.trajectory[self.traj_idx, :]
