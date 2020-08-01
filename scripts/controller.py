@@ -72,7 +72,7 @@ class ControlLoops():
 
         x_des = p_x(pos[1])
         y_des = p_y(pos[0])
-        pos_des = wp[0:2] #np.array([x_des,y_des])
+        pos_des = wp[0:2]
 
         v_des = (wp-wp_prev)[0:2]
 
@@ -101,6 +101,8 @@ class ControlNode():
         self.omega = 0
 
         self.mode = None
+
+        # track rotation of wheels
 
         # navigation info
         self.trajectory = None
@@ -137,19 +139,21 @@ class ControlNode():
 
     ## Helper Functions
     def getWaypoint(self):
-        # determine waypoint
-        wp = self.trajectory[self.traj_idx, :]
-
-        # advance waypoints
-        if npl.norm(wp[0:2]-self.pos) < 0.25 and self.traj_idx < self.trajectory.shape[0]-1:
-            self.traj_idx += 1
+        if self.trajectory is not None:
+            # determine waypoint
             wp = self.trajectory[self.traj_idx, :]
 
-        if self.traj_idx == 0:
-            wp_prev = np.hstack([self.pos, self.theta])
-        else:
-            wp_prev = self.trajectory[self.traj_idx-1, :]
-        return wp, wp_prev
+            # advance waypoints
+            if npl.norm(wp[0:2]-self.pos) < 0.25 and self.traj_idx < self.trajectory.shape[0]-1:
+                self.traj_idx += 1
+                wp = self.trajectory[self.traj_idx, :]
+
+            if self.traj_idx == 0:
+                wp_prev = np.hstack([self.pos, self.theta])
+            else:
+                wp_prev = self.trajectory[self.traj_idx-1, :]
+
+            return wp, wp_prev
 
     def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
         """Convert velocity and omega commands to motor inputs"""
@@ -167,9 +171,16 @@ class ControlNode():
 
         # Convert to |V| and phi
         V_norm_cmd = npl.norm(V_cmd, axis=0)
-        print(V_cmd)
-        phi_cmd = np.arctan2(V_cmd[1,:], V_cmd[0,:]) + np.pi/2
+        phi_cmd = (np.arctan2(V_cmd[1,:], V_cmd[0,:])+np.pi/2 + 2*np.pi) % (2*np.pi)
 
+        # curr = self.phi_cmd
+        # min_dist = np.zeros((rcfg.N,1))
+        # for i in range(0, rcfg.N):
+        #     if abs(curr[i])-abs(phi_cmd[i]) > np.pi:
+        #         min_dist[i] = min(curr[i]-phi_cmd[i], curr[i]-phi_cmd[i]+2*np.pi, curr[i]-phi_cmd[i]-2*np.pi, key=abs)
+        #         phi_cmd[i] = self.phi_cmd[i] + min_dist[i]
+
+        # print(min_dist)
         return V_norm_cmd, phi_cmd
 
     ## Main Loops
