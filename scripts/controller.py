@@ -176,7 +176,14 @@ class ControlNode():
         phi_cmd -= np.pi*np.sign(phi_diff)*idx
         v_wheel *= -1*idx
 
-        self.phi_prev = phi_cmd
+        # enforce physical bounds
+        idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
+        idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
+
+        phi_cmd += np.pi*idx_upper - np.pi*idx_lower
+        v_wheel *= -1*(idx_upper+idx_lower)
+
+        self.phi_prev = phi_cmd     # store previous command
 
         return v_wheel, phi_cmd
 
