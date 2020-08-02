@@ -71,7 +71,7 @@ class ControlLoops():
 
         x_des = p_x(pos[1])
         y_des = p_y(pos[0])
-        pos_des = np.array([x_des,y_des])
+        pos_des = wp[0:2] #np.array([x_des,y_des])
 
         v_des = (wp-wp_prev)[0:2]
 
