@@ -26,14 +26,15 @@ class Navigator():
         self.mode = Mode(msg.data)
 
     def loadTrajectory(self):
-        traj_id = 2  # specify what trajectory we want to use
+        traj_id = 1  # specify what trajectory we want to use
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 [0,0,0],
                 [1,0,0],
                 [1,1,0],
-                [0,1,0]
+                [0,1,0],
+                [0,0,0]
                 ])
         elif traj_id == 2:  # circle
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
