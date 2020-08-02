@@ -1,0 +1,17 @@
+<!-- Open loop sim launch -->
+<launch>
+    <!-- Set enviroment variable to sim -->
+    <param name="ENV" value="sim" />
+
+    <!-- Set path to ar_commander repo -->
+    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+
+    <!-- launch ar_sim -->
+    <include file="$(find gazebo_interface)/launch/gazebo_sim.launch" />
+
+    <!-- launch ar_commander -->
+    <node pkg="ar_commander" type="estimator_ol.py" name="Estimator" output="screen" />
+    <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
+    <node pkg="ar_commander" type="navigator.py" name="Navigator" output="screen" />
+    <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+</launch>
