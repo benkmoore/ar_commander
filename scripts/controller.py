@@ -7,7 +7,7 @@ import numpy.linalg as npl
 from stateMachine import Mode
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
-from std_msgs.msg import Int8
+from std_msgs.msg import Int8, Bool
 
 env = rospy.get_param("ENV")
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
@@ -99,6 +99,8 @@ class ControlNode():
         self.robot_v_cmd = None
         self.robot_omega_cmd = None
 
+        self.last_waypoint_flag = False
+
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
@@ -106,6 +108,7 @@ class ControlNode():
 
         # publishers
         self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
+        self.last_wp_pub = rospy.Publisher('controller/last_waypoint', Bool)
 
     ## Callback Functions
     def trajectoryCallback(self, msg):
@@ -180,6 +183,8 @@ class ControlNode():
         self.robot_v_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
 
+        self.last_waypoint_flag = False
+
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
@@ -187,6 +192,7 @@ class ControlNode():
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
+                self.last_waypoint_flag = True
 
             self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
 
@@ -203,6 +209,10 @@ class ControlNode():
         cmd.robot_omega.data = self.robot_omega_cmd
 
         self.pub_cmds.publish(cmd)
+
+        flag = Bool()
+        flag.data = self.last_waypoint_flag
+        self.last_wp_pub.publish(flag)
 
     def run(self):
         rate = rospy.Rate(params.CONTROLLER_RATE)
