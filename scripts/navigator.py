@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 
-import rospy
+import numpy as np
 import numpy.linalg as npl
+import rospy
 
-from astar import *
+from astar import AStar, DetOccupancyGrid2D
 from stateMachine import Mode
 
 from ar_commander.msg import Trajectory, State
