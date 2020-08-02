@@ -2,6 +2,12 @@
 
 import numpy as np
 import rospy
+import sys
+
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+
+# Global variables
+import configs.robot_v1 as rcfg
 
 from ar_commander.msg import State, ControllerCmd
 
@@ -28,7 +34,6 @@ class EstimatorOL():
         # publishers
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)
 
-
     def controllerCmdCallback(self, msg):
         self.vel_cmd = np.array(msg.robot_vel.data)
         self.omega_cmd = msg.robot_omega.data
@@ -44,7 +49,7 @@ class EstimatorOL():
             return
 
         dt = 1. / RATE
-        self.state.pos.data = self.state.pos.data + self.vel_cmd*dt
+        self.state.pos.data = self.state.pos.data + self.vel_cmd*rcfg.WHEEL_RADIUS*dt   # v = r*w
         self.state.theta.data = self.state.theta.data + self.omega_cmd*dt
 
     def publish(self):
