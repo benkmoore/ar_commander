@@ -19,7 +19,6 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
-## Global variables
 import configs.robot_v1 as rcfg
 
 class ControlLoops():
@@ -56,24 +55,7 @@ class ControlLoops():
         kd_pos = params.trajectoryControllerGains['kd_pos']
         v_mag = params.trajectoryControllerGains['v_mag']
 
-        # fit line/poly and get derivative
-        x = np.array([wp_prev[0], wp[0]])
-        y = np.array([wp_prev[1], wp[1]])
-
-        if wp[0] == wp_prev[0]:
-            p_y = lambda y: wp[1]
-        else:
-            p_y = np.poly1d(np.polyfit(x, y, 1)) # desired y
-
-        if wp[1] == wp_prev[1]:
-            p_x = lambda x: wp[0]
-        else:
-            p_x = np.poly1d(np.polyfit(y, x, 1)) # desired x
-
-        x_des = p_x(pos[1])
-        y_des = p_y(pos[0])
         pos_des = wp[0:2]
-
         v_des = (wp-wp_prev)[0:2]
 
         v_cmd = kd_pos*v_des + kp_pos*(pos_des-pos)
@@ -102,7 +84,7 @@ class ControlNode():
 
         self.mode = None
 
-        # track rotation of wheels
+        self.phi_prev = np.zeros(rcfg.N)   # can initialize to 0 as it will only affect first command
 
         # navigation info
         self.trajectory = None
@@ -167,21 +149,26 @@ class ControlNode():
         v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
         v_th_rf = np.hstack([v_th1, v_th2])
 
-        V_cmd = v_cmd_rf + v_th_rf
+        v_xy = v_cmd_rf + v_th_rf
 
         # Convert to |V| and phi
-        V_norm_cmd = npl.norm(V_cmd, axis=0)
-        phi_cmd = (np.arctan2(V_cmd[1,:], V_cmd[0,:])+np.pi/2 + 2*np.pi) % (2*np.pi)
+        v_wheel = npl.norm(v_xy, axis=0)
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) + np.pi/2
 
-        # curr = self.phi_cmd
-        # min_dist = np.zeros((rcfg.N,1))
-        # for i in range(0, rcfg.N):
-        #     if abs(curr[i])-abs(phi_cmd[i]) > np.pi:
-        #         min_dist[i] = min(curr[i]-phi_cmd[i], curr[i]-phi_cmd[i]+2*np.pi, curr[i]-phi_cmd[i]-2*np.pi, key=abs)
-        #         phi_cmd[i] = self.phi_cmd[i] + min_dist[i]
+        # pick closest phi
+        phi_diff = phi_cmd - self.phi_prev
+        idx = abs(phi_diff) > np.pi/2
+        phi_cmd -= np.pi*np.sign(phi_diff)*idx
+        v_wheel *= -1*idx + 1*~idx
 
-        # print(min_dist)
-        return V_norm_cmd, phi_cmd
+        # enforce physical bounds
+        idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
+        idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
+
+        phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
+        v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
+
+        return v_wheel, phi_cmd
 
     ## Main Loops
     def controlLoop(self):
@@ -198,6 +185,7 @@ class ControlNode():
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
 
             self.V_cmd, self.phi_cmd = self.convert2MotorInputs(v_des,w_des)
+            self.phi_prev = self.phi_cmd     # store previous command
 
     def publish(self):
         """ publish cmd messages """
