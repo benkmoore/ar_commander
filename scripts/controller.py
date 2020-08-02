@@ -52,19 +52,24 @@ class ControlLoops():
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
         # gains
         kp_pos = params.trajectoryControllerGains['kp_pos']
-        kp_th = params.trajectoryControllerGains['kp_th']
         kd_pos = params.trajectoryControllerGains['kd_pos']
-        v_mag = params.trajectoryControllerGains['v_mag']
+        kp_th = params.trajectoryControllerGains['kp_th']
+        kp_vel = params.trajectoryControllerGains['kp_vel']
 
         pos_des = wp[0:2]
         v_des = (wp-wp_prev)[0:2]
 
-        v_cmd = kd_pos*v_des + kp_pos*(pos_des-pos)
-        v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
-
+        v_cmd = kp_vel*v_des + kp_pos*(pos_des-pos)
         theta_des = wp[2]
         theta_err = theta_des - theta
         omega_cmd = kp_th*theta_err
+
+        # saturate v_cmd
+        for i in range(0, len(v_cmd)):
+            if v_cmd[i] > 0:
+                v_cmd[i] = min(rcfg.MAX_VEL, v_cmd[i])
+            else:
+                v_cmd[i] = max(-rcfg.MAX_VEL, v_cmd[i])
 
         return v_cmd, omega_cmd
 
