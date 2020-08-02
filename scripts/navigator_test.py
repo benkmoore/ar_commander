@@ -35,7 +35,7 @@ class Navigator():
                 [1,1,0],
                 [0,1,0]
                 ])
-        elif traj_id == 2:
+        elif traj_id == 2:  # circle
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.sin(t),np.cos(t),t])
 
@@ -58,7 +58,6 @@ class Navigator():
             if self.mode == Mode.IDLE:
                 self.loadTrajectory()
                 self.publish()
-                print("Here ##############################")
             rate.sleep()
 
 if __name__ == '__main__':
