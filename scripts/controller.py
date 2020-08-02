@@ -56,24 +56,7 @@ class ControlLoops():
         kd_pos = params.trajectoryControllerGains['kd_pos']
         v_mag = params.trajectoryControllerGains['v_mag']
 
-        # fit line/poly and get derivative
-        x = np.array([wp_prev[0], wp[0]])
-        y = np.array([wp_prev[1], wp[1]])
-
-        if wp[0] == wp_prev[0]:
-            p_y = lambda y: wp[1]
-        else:
-            p_y = np.poly1d(np.polyfit(x, y, 1)) # desired y
-
-        if wp[1] == wp_prev[1]:
-            p_x = lambda x: wp[0]
-        else:
-            p_x = np.poly1d(np.polyfit(y, x, 1)) # desired x
-
-        x_des = p_x(pos[1])
-        y_des = p_y(pos[0])
-        pos_des = np.array([x_des,y_des])
-
+        pos_des = wp[0:2]
         v_des = (wp-wp_prev)[0:2]
 
         v_cmd = kd_pos*v_des + kp_pos*(pos_des-pos)
@@ -135,7 +118,7 @@ class ControlNode():
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
 
-    ## Helper Functions        
+    ## Helper Functions
     def getWaypoint(self):
         # determine waypoint
         wp = self.trajectory[self.traj_idx, :]
