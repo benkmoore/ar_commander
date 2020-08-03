@@ -95,7 +95,7 @@ class ControlNode():
 
         # output commands
         self.wheel_phi_cmd = None
-        self.wheel_v_cmd = None
+        self.wheel_w_cmd = None
         self.robot_v_cmd = None
         self.robot_omega_cmd = None
 
@@ -178,9 +178,9 @@ class ControlNode():
     ## Main Loops
     def controlLoop(self):
         # default behavior
-        self.wheel_v_cmd = np.zeros(rcfg.N)
+        self.wheel_w_cmd = np.zeros(rcfg.N)
         self.wheel_phi_cmd = np.zeros(rcfg.N) # rads
-        self.robot_v_cmd = np.zeros(2)
+        self.robot_w_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
 
         self.last_waypoint_flag = False
@@ -194,8 +194,7 @@ class ControlNode():
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
                 self.last_waypoint_flag = True
 
-            self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
-
+            self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             self.robot_v_cmd = v_des
             self.robot_omega_cmd = w_des
             self.phi_prev = self.wheel_phi_cmd     # store previous command
@@ -203,9 +202,9 @@ class ControlNode():
     def publish(self):
         """ publish cmd messages """
         cmd = ControllerCmd()
-        cmd.velocity_arr.data = self.wheel_v_cmd
+        cmd.omega_arr.data = self.wheel_w_cmd
         cmd.phi_arr.data = self.wheel_phi_cmd
-        cmd.robot_vel.data = self.robot_v_cmd
+        cmd.robot_w.data = self.robot_w_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
 
         self.pub_cmds.publish(cmd)
