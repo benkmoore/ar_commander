@@ -128,7 +128,7 @@ class ControlNode():
             wp = self.trajectory[self.traj_idx, :]
 
             # advance waypoints
-            if npl.norm(wp[0:2]-self.pos) < 0.2 and self.traj_idx < self.trajectory.shape[0]-1:
+            if npl.norm(wp[0:2]-self.pos) < 0.15 and self.traj_idx < self.trajectory.shape[0]-1:
                 self.traj_idx += 1
                 wp = self.trajectory[self.traj_idx, :]
 
@@ -155,7 +155,7 @@ class ControlNode():
 
         # Convert to |V| and phi
         v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) + np.pi
+        phi_cmd = (np.arctan2(v_xy[1,:], v_xy[0,:]) + 2*np.pi) % (2*np.pi)
 
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
