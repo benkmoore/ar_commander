@@ -65,11 +65,7 @@ class ControlLoops():
         omega_cmd = kp_th*theta_err
 
         # saturate v_cmd
-        for i in range(0, len(v_cmd)):
-            if v_cmd[i] > 0:
-                v_cmd[i] = min(rcfg.MAX_VEL, v_cmd[i])
-            else:
-                v_cmd[i] = max(-rcfg.MAX_VEL, v_cmd[i])
+        v_cmd = np.clip(v_cmd, -params.max_vel, params.max_vel)
 
         return v_cmd, omega_cmd
 
