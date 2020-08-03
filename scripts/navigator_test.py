@@ -52,6 +52,10 @@ class Navigator():
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
             self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
+        elif traj_id == 5: # rotate on spot
+            print("Testing rotation on spot")
+            t = np.linspace(0,2*np.pi)[:, np.newaxis]
+            self.trajectory = np.hstack([np.zeros(t.shape),np.zeros(t.shape),t])
         else:
             raise ValueError("Invalid traj_id")
 
