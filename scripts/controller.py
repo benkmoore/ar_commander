@@ -111,8 +111,8 @@ class ControlNode():
 
         # output commands
         self.wheel_phi_cmd = None
-        self.wheel_v_cmd = None
-        self.robot_v_cmd = None
+        self.wheel_w_cmd = None
+        self.robot_w_cmd = None
         self.robot_omega_cmd = None
 
         # subscribers
@@ -176,9 +176,9 @@ class ControlNode():
     ## Main Loops
     def controlLoop(self):
         # default behavior
-        self.wheel_v_cmd = np.zeros(rcfg.N)
+        self.wheel_w_cmd = np.zeros(rcfg.N)
         self.wheel_phi_cmd = np.zeros(rcfg.N) # rads
-        self.robot_v_cmd = np.zeros(2)
+        self.robot_w_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
 
         if self.mode == Mode.TRAJECTORY:
@@ -189,16 +189,16 @@ class ControlNode():
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
 
-            self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
-            self.robot_v_cmd = v_des
+            self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
+            self.robot_w_cmd = v_des
             self.robot_omega_cmd = w_des
 
     def publish(self):
         """ publish cmd messages """
         cmd = ControllerCmd()
-        cmd.velocity_arr.data = self.wheel_v_cmd
+        cmd.omega_arr.data = self.wheel_w_cmd
         cmd.phi_arr.data = self.wheel_phi_cmd
-        cmd.robot_vel.data = self.robot_v_cmd
+        cmd.robot_w.data = self.robot_w_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
 
         self.pub_cmds.publish(cmd)

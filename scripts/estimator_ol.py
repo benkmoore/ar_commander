@@ -18,7 +18,7 @@ class EstimatorOL():
         rospy.init_node('estimator')
 
         # incominng measurements (inputs)
-        self.vel_cmd = None
+        self.wheel_w_cmd = None
         self.omega_cmd = None
 
         # robot state (output)
@@ -35,7 +35,7 @@ class EstimatorOL():
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)
 
     def controllerCmdCallback(self, msg):
-        self.vel_cmd = np.array(msg.robot_vel.data)
+        self.wheel_w_cmd = np.array(msg.robot_w.data)
         self.omega_cmd = msg.robot_omega.data
 
     def updateState(self):
@@ -45,11 +45,11 @@ class EstimatorOL():
         """
 
         # wait till we have pos and theta measurements
-        if self.vel_cmd is None or self.omega_cmd is None:
+        if self.wheel_w_cmd is None or self.omega_cmd is None:
             return
 
         dt = 1. / RATE
-        self.state.pos.data = self.state.pos.data + self.vel_cmd*rcfg.WHEEL_RADIUS*dt   # v = r*w
+        self.state.pos.data = self.state.pos.data + self.wheel_w_cmd*rcfg.wheel_radius*dt   # v = r*w
         self.state.theta.data = self.state.theta.data + self.omega_cmd*dt
 
     def publish(self):
