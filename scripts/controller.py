@@ -213,6 +213,7 @@ class ControlNode():
         flag.data = self.last_waypoint_flag
         self.last_wp_pub.publish(flag)
 
+
     def run(self):
         rate = rospy.Rate(params.CONTROLLER_RATE)
         while not rospy.is_shutdown():
