@@ -180,7 +180,7 @@ class ControlNode():
         # default behavior
         self.wheel_w_cmd = np.zeros(rcfg.N)
         self.wheel_phi_cmd = np.zeros(rcfg.N) # rads
-        self.robot_w_cmd = np.zeros(2)
+        self.robot_v_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
 
         self.last_waypoint_flag = False
@@ -204,7 +204,7 @@ class ControlNode():
         cmd = ControllerCmd()
         cmd.omega_arr.data = self.wheel_w_cmd
         cmd.phi_arr.data = self.wheel_phi_cmd
-        cmd.robot_w.data = self.robot_w_cmd
+        cmd.robot_v.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
 
         self.pub_cmds.publish(cmd)
