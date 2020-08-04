@@ -28,7 +28,6 @@ class Navigator():
         traj_id = 1  # specify what trajectory we want to use
 
         if traj_id == 1:    # square (theta=0)
-            print("Testing square trajectory")
             self.trajectory = np.array([
                 [0,0,0],
                 [1,0,0],
@@ -37,23 +36,19 @@ class Navigator():
                 [0,0,0]
                 ])
         elif traj_id == 2: # circle
-            print("Testing circle trajectory")
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.sin(t),np.cos(t),t])
         elif traj_id == 3: # sine wave
-            print("Testing sine wave trajectory")
             t = np.arange(0.0, 10.0, 0.1)[:, np.newaxis]
             s = ( 1 + np.sin(2 * np.pi * t) )
             self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
         elif traj_id == 4: # figure of eight
-            print("Testing figure of eight trajectory")
             t = np.linspace(0,1.8*np.pi)[:, np.newaxis] # cut short due to bug in navigator with same start and end point
             a = 3
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
             self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
         elif traj_id == 5: # rotate on spot
-            print("Testing rotation on spot")
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.zeros(t.shape),np.zeros(t.shape),t])
         else:
