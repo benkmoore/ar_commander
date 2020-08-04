@@ -156,20 +156,20 @@ class ControlNode():
         # Convert to |V| and phi
         v_wheel = npl.norm(v_xy, axis=0)
         phi_cmd = (np.arctan2(v_xy[1,:], v_xy[0,:]) + 2*np.pi) % (2*np.pi)
-
+        #print("------------")
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
         idx = abs(phi_diff) > np.pi
-        phi_cmd -= np.pi*np.sign(phi_diff)*idx
-        v_wheel *= -1*idx + 1*~idx
-
+        phi_cmd -= 2*np.pi*np.sign(phi_diff)*idx
+        #v_wheel *= -1*idx + 1*~idx
+        
         # enforce physical bounds
         idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
         idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
 
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
-
+       # print phi_cmd
         return v_wheel, phi_cmd
 
     ## Main Loops
@@ -201,7 +201,7 @@ class ControlNode():
         cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
-
+        rospy.loginfo_throttle(1, cmd)
         self.pub_cmds.publish(cmd)
 
     def run(self):
