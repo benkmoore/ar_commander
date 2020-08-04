@@ -204,7 +204,7 @@ class ControlNode():
         cmd = ControllerCmd()
         cmd.omega_arr.data = self.wheel_w_cmd
         cmd.phi_arr.data = self.wheel_phi_cmd
-        cmd.robot_v.data = self.robot_v_cmd
+        cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
 
         self.pub_cmds.publish(cmd)

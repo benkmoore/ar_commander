@@ -35,7 +35,7 @@ class EstimatorOL():
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)
 
     def controllerCmdCallback(self, msg):
-        self.wheel_w_cmd = np.array(msg.robot_w.data)
+        self.wheel_w_cmd = np.array(msg.robot_vel.data)
         self.omega_cmd = msg.robot_omega.data
 
     def updateState(self):
