@@ -7,7 +7,6 @@ from ar_commander.msg import Trajectory
 from stateMachine import Mode
 from std_msgs.msg import Int8
 
-
 class Navigator():
     def __init__(self):
         rospy.init_node('navigator_test')
@@ -36,10 +35,22 @@ class Navigator():
                 [0,1,0],
                 [0,0,0]
                 ])
-        elif traj_id == 2:  # circle
+        elif traj_id == 2: # circle
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.sin(t),np.cos(t),t])
-
+        elif traj_id == 3: # sine wave
+            t = np.arange(0.0, 10.0, 0.1)[:, np.newaxis]
+            s = ( 1 + np.sin(2 * np.pi * t) )
+            self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
+        elif traj_id == 4: # figure of eight
+            t = np.linspace(0,1.8*np.pi)[:, np.newaxis] # cut short due to bug in navigator with same start and end point
+            a = 3
+            x = a*np.sin(t)
+            y = a*np.sin(t)*np.cos(t)
+            self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
+        elif traj_id == 5: # rotate on spot
+            t = np.linspace(0,2*np.pi)[:, np.newaxis]
+            self.trajectory = np.hstack([np.zeros(t.shape),np.zeros(t.shape),t])
         else:
             raise ValueError("Invalid traj_id")
 
