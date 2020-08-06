@@ -43,9 +43,11 @@ class ControlLoops():
     def pointController(self, pos_des, pos, vel):
         kp = params.pointControllerGains['kp']
         kd = params.pointControllerGains['kd']
+        v_mag = params.trajectoryControllerGains['v_mag']
 
         p_err = pos_des - pos
         v_cmd = kp*p_err + kd*vel
+        v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
         return v_cmd
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
