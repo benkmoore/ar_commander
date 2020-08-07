@@ -54,12 +54,12 @@ class ControlLoops():
         kp_pos = params.trajectoryControllerGains['kp_pos']
         kd_pos = params.trajectoryControllerGains['kd_pos']
         kp_th = params.trajectoryControllerGains['kp_th']
-        kp_vel = params.trajectoryControllerGains['kp_vel']
+        k_ol = params.trajectoryControllerGains['k_ol']
 
         pos_des = wp[0:2]
-        v_des = (wp-wp_prev)[0:2]
+        v_ol = (wp-wp_prev)[0:2]
 
-        v_cmd = kp_vel*v_des + kp_pos*(pos_des-pos)
+        v_cmd = k_ol*v_ol + kp_pos*(pos_des-pos)
         theta_des = wp[2]
         theta_err = theta_des - theta
         omega_cmd = kp_th*theta_err
