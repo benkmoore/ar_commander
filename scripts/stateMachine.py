@@ -11,7 +11,7 @@ import numpy.linalg as npl
 import rospy
 
 from ar_commander.msg import State, Trajectory
-from std_msgs.msg import Int8
+from std_msgs.msg import Int8, Bool
 
 
 RATE = 10
@@ -36,12 +36,16 @@ class StateMachine():
         self.new_traj_flag = False
         self.trajectory = None
 
+        self.new_traj_flag = False
+        self.last_wp_flag = False
+
         self.pos = None
         self.theta = None
 
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
+        rospy.Subscriber('controller/last_waypoint_flag', Bool, self.lastWpCallback)
 
         # publishers
         self.pub_mode = rospy.Publisher('state_machine/mode', Int8, queue_size=10)
@@ -56,6 +60,8 @@ class StateMachine():
         self.new_traj_flag = True
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
 
+    def lastWpCallback(self,msg):
+         self.last_wp_flag = msg.data
 
     ## Decision Fuctions
     def hasInitialized(self):
@@ -77,7 +83,8 @@ class StateMachine():
         wp_final = self.trajectory[-1,:]
         check1 = npl.norm(self.pos - wp_final[0:2]) < POS_THRESH
         check2 = self.theta - wp_final[2] < THETA_THRESH
-        if check1 and check2:
+        check3 = self.last_wp_flag
+        if check1 and check2 and check3:
             return True
         return False
 
