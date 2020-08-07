@@ -66,6 +66,14 @@ class Navigator():
         elif traj_id == 6:  # rotate on spot
             t = np.linspace(0,1.9*np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.zeros(t.shape),np.zeros(t.shape),t])
+        elif traj_id == 7:  # rotate theta while moving in straight line along y
+            num_pts = 30
+            zero2pi = np.linspace(0, np.pi/2, num_pts/2)[:, np.newaxis]
+            pi2neg_pi = np.linspace(np.pi/2, 0, num_pts/2)[:, np.newaxis]
+            t = np.concatenate((zero2pi,pi2neg_pi),axis=0)
+            y_end = 4.5
+            y_pts = np.linspace(0,y_end, num_pts)[:, np.newaxis]
+            self.trajectory = np.hstack([np.zeros(t.shape),y_pts,t])
         else:
             raise ValueError("Invalid traj_id")
 
