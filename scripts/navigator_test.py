@@ -59,8 +59,9 @@ class Navigator():
             y = a*np.sin(t)*np.cos(t)
             self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
         elif teaj_id == 5:  # sine wave
+            T = 1 # period
             t = np.arange(0.0, 10.0, 0.1)[:, np.newaxis]
-            s = 1 + np.sin(2*np.pi*t)
+            s = 2 + np.sin(T*np.pi*t)
             self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
         elif traj_id == 6:  # rotate on spot
             t = np.linspace(0,1.9*np.pi)[:, np.newaxis]
