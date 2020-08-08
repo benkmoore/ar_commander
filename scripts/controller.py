@@ -57,10 +57,6 @@ class ControlLoops():
         else:
             v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
 
-
-        if abs(p_err) < 0.1:
-            v_cmd = np.zeros(v_cmd.shape)
-
         return v_cmd
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
@@ -207,12 +203,17 @@ class ControlNode():
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
                 v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
+                self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             else:
-                v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
-                w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
-                self.last_waypoint_flag = True
-
-            self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
+                if npl.norm(wp[0:2]-self.pos) < 0.1:
+                    self.wheel_v_cmd = np.zeros(self.wheel_v_cmd.shape)
+                    v_des = np.zeros(self.vel.shape)
+                    w_des = 0.0
+                else: 
+                    v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
+                    w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
+                    self.last_waypoint_flag = True
+                    self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
 
             self.robot_v_cmd = v_des
             self.robot_omega_cmd = w_des
