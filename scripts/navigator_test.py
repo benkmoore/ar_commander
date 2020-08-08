@@ -27,7 +27,7 @@ class Navigator():
 
     def loadTrajectory(self):
         traj_id = 6  # specify what trajectory we want to use
-        
+
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 [1.5,0,0],
@@ -64,14 +64,14 @@ class Navigator():
             s = np.sin(T*np.pi*t)
             self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
         elif traj_id == 6:  # rotate on spot
-            t = np.linspace(0,1.9*np.pi)[:, np.newaxis]
+            t = np.linspace(0, -np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.zeros(t.shape),np.zeros(t.shape),t])
         elif traj_id == 7:  # rotate theta while moving in straight line along y
             num_pts = 30
             zero2pi = np.linspace(0, np.pi/2, num_pts/2)[:, np.newaxis]
             pi2neg_pi = np.linspace(np.pi/2, 0, num_pts/2)[:, np.newaxis]
             t = np.concatenate((zero2pi,pi2neg_pi),axis=0)
-            y_end = 4.5
+            y_end = 10
             y_pts = np.linspace(0,y_end, num_pts)[:, np.newaxis]
             self.trajectory = np.hstack([np.zeros(t.shape),y_pts,t])
         else:
