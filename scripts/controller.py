@@ -56,6 +56,11 @@ class ControlLoops():
             v_cmd = np.zeros(v_cmd.shape)
         else:
             v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
+
+
+        if abs(p_err) < 0.1:
+            v_cmd = np.zeros(v_cmd.shape)
+
         return v_cmd
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
