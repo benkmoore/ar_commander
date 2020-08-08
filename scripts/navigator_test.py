@@ -26,8 +26,8 @@ class Navigator():
         self.mode = Mode(msg.data)
 
     def loadTrajectory(self):
-        traj_id = 3  # specify what trajectory we want to use
-
+        traj_id = 6  # specify what trajectory we want to use
+        
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 [1.5,0,0],
@@ -36,7 +36,7 @@ class Navigator():
                 [0,0,0],
                 [1.5,0,0]
                 ])
-        if traj_id == 2:    # reverse square (theta=0)
+        elif traj_id == 2:    # reverse square (theta=0)
             self.trajectory = np.array([
                 [-1.5,0,0],
                 [-1.5,-1.5,0],
@@ -50,7 +50,7 @@ class Navigator():
             r = 1.5 # radius
             x_c = r # force circle edge to start at (0,0)
             y_c = 0
-            self.trajectory = np.hstack([y_c+r*np.sin(t),x_c+r*np.cos(t),t])
+            self.trajectory = np.hstack([-y_c-r*np.sin(t),x_c+r*np.cos(t),np.zeros(t.shape)])
         elif traj_id == 4: # figure of eight
             num_times = 1
             t = np.linspace(0,num_times*1.9*np.pi,30*num_times)[:, np.newaxis] # cut short due to bug in navigator with same start and end point
@@ -58,10 +58,10 @@ class Navigator():
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
             self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
-        elif teaj_id == 5:  # sine wave
-            T = 1 # period
-            t = np.arange(0.0, 10.0, 0.1)[:, np.newaxis]
-            s = 2 + np.sin(T*np.pi*t)
+        elif traj_id == 5:  # sine wave
+            T = 0.5  # period
+            t = np.arange(0.0, 16.0, 0.1)[:, np.newaxis] # 1 full period is 4 units
+            s = np.sin(T*np.pi*t)
             self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
         elif traj_id == 6:  # rotate on spot
             t = np.linspace(0,1.9*np.pi)[:, np.newaxis]

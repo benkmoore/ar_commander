@@ -35,9 +35,14 @@ class ControlLoops():
         kp = params.thetaControllerGains['kp']
         ki = params.thetaControllerGains['ki']
         kd = params.thetaControllerGains['kd']
+        v_mag = params.trajectoryControllerGains['v_mag']
 
         theta_err = theta_des - theta
-        theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
+        if abs(theta_err) < 0.25:
+            theta_dot_cmd = np.zeros(theta_err.shape)
+        else:
+            theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
+            theta_dot_cmd = 2.2 * v_mag * theta_dot_cmd/npl.norm(theta_dot_cmd)
         return theta_dot_cmd
 
     def pointController(self, pos_des, pos, vel):
@@ -47,7 +52,10 @@ class ControlLoops():
 
         p_err = pos_des - pos
         v_cmd = kp*p_err + kd*vel
-        v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
+        if npl.norm(v_cmd) < 10**-5:
+            v_cmd = np.zeros(v_cmd.shape)
+        else:
+            v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
         return v_cmd
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
@@ -61,7 +69,10 @@ class ControlLoops():
         v_des = (wp-wp_prev)[0:2]
 
         v_cmd = kd_pos*v_des + kp_pos*(pos_des-pos)
-        v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
+        if npl.norm(v_cmd) < 10**-5:
+            v_cmd = np.zeros(v_cmd.shape)
+        else:
+            v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
 
         theta_des = wp[2]
         theta_err = theta_des - theta
