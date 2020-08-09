@@ -112,8 +112,9 @@ class ControlNode():
 
     ## Callback Functions
     def trajectoryCallback(self, msg):
-        if self.trajectory is None:
-            self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
+        self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
+        self.traj_idx = 0
+        self.controllers.resetController()
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
