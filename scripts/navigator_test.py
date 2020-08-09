@@ -67,7 +67,7 @@ class Navigator():
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
         while not rospy.is_shutdown() and not self.trajectory_published:
-            if self.mode == Mode.IDLE:
+            if self.mode is not None and self.mode.value >= Mode.IDLE.value:
                 self.loadTrajectory()
                 self.publish()
             rate.sleep()
