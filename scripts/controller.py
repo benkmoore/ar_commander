@@ -108,7 +108,7 @@ class ControlNode():
 
         # publishers
         self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
-        self.last_wp_pub = rospy.Publisher('controller/last_waypoint', Bool)
+        self.last_wp_pub = rospy.Publisher('controller/last_waypoint_flag', Bool)
 
     ## Callback Functions
     def trajectoryCallback(self, msg):
