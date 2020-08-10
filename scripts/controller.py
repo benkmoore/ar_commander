@@ -173,7 +173,10 @@ class ControlNode():
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
-        return v_wheel, phi_cmd
+        # map to desired omega (angular velocity) of wheels: w = v/r
+        w_wheel = v_wheel/rcfg.wheel_radius
+
+        return w_wheel, phi_cmd
 
     ## Main Loops
     def controlLoop(self):
