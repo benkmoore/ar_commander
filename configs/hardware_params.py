@@ -1,7 +1,7 @@
 
 CONTROLLER_RATE = 60                       # rate in Hz
 
-max_vel = 250                              # m/s (Scaled by PWM)
+max_vel = 3                                # m/s
 
 thetaControllerGains = {'kp':175, 'ki':0.03, 'kd':5e-8}
 
