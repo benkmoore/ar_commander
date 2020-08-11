@@ -26,15 +26,16 @@ class Navigator():
         self.mode = Mode(msg.data)
 
     def loadTrajectory(self):
-        traj_id = 1  # specify what trajectory we want to use
-
+        traj_id = 5  # specify what trajectory we want to use
+        
+        offset = 0
+        length = 1
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
-                [1.5,0,0],
-                [1.5,1.5,0],
-                [0,1.5,0],
-                [0,0,0],
-                [1.5,0,0]
+                [length,0,0],
+                [length,length,0],
+                [0,length,0],
+                [offset,0,0]
                 ])
         elif traj_id == 2:    # reverse square (theta=0)
             self.trajectory = np.array([
@@ -46,22 +47,23 @@ class Navigator():
                 ])
         elif traj_id == 3:  # circle
             num_times = 1
-            t = np.linspace(-np.pi,num_times*0.9*np.pi,30*num_times)[:, np.newaxis]
-            r = 1.5 # radius
+            t = np.linspace(-np.pi,num_times*np.pi,30*num_times)[:, np.newaxis]
+            r = 0.7 # radius
             x_c = r # force circle edge to start at (0,0)
             y_c = 0
             self.trajectory = np.hstack([-y_c-r*np.sin(t),x_c+r*np.cos(t),np.zeros(t.shape)])
         elif traj_id == 4: # figure of eight
             num_times = 1
-            t = np.linspace(0,num_times*1.9*np.pi,30*num_times)[:, np.newaxis] # cut short due to bug in navigator with same start and end point
-            a = 2
+            t = np.linspace(0,num_times*2*np.pi,30*num_times)[:, np.newaxis] # cut short due to bug in navigator with same start and end point
+            a = 1 #2
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
             self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
         elif traj_id == 5:  # sine wave
-            T = 0.5  # period
-            t = np.arange(0.0, 16.0, 0.1)[:, np.newaxis] # 1 full period is 4 units
-            s = np.sin(T*np.pi*t)
+            A = 0.5
+            w = np.pi/1.5  # freq
+            t = np.arange(0.0, 3.0, 0.1)[:, np.newaxis] # 1 full period is 3 units: T = 2pi/w
+            s = A*np.sin(w*t)
             self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
         elif traj_id == 6:  # rotate on spot
             t = np.linspace(0, -np.pi)[:, np.newaxis]
