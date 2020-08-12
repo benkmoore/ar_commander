@@ -6,9 +6,6 @@ import sys
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
-# Global variables
-import configs.robot_v1 as rcfg
-
 from ar_commander.msg import State, ControllerCmd
 
 RATE = 10
