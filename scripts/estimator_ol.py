@@ -2,9 +2,6 @@
 
 import numpy as np
 import rospy
-import sys
-
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from ar_commander.msg import State, ControllerCmd
 
@@ -30,6 +27,7 @@ class EstimatorOL():
 
         # publishers
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)
+
 
     def controllerCmdCallback(self, msg):
         self.vel_cmd = np.array(msg.robot_vel.data)
