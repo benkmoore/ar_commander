@@ -96,7 +96,7 @@ class ControlNode():
 
         # output commands
         self.wheel_phi_cmd = None
-        self.wheel_v_cmd = None
+        self.wheel_w_cmd = None
         self.robot_v_cmd = None
         self.robot_omega_cmd = None
 
@@ -175,12 +175,15 @@ class ControlNode():
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
-        return v_wheel, phi_cmd
+        # map to desired omega (angular velocity) of wheels: w = v/r
+        w_wheel = v_wheel/rcfg.wheel_radius
+
+        return w_wheel, phi_cmd
 
     ## Main Loops
     def controlLoop(self):
         # default behavior
-        self.wheel_v_cmd = np.zeros(rcfg.N)
+        self.wheel_w_cmd = np.zeros(rcfg.N)
         self.wheel_phi_cmd = np.zeros(rcfg.N) # rads
         self.robot_v_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
@@ -196,8 +199,7 @@ class ControlNode():
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
                 self.last_waypoint_flag = True
 
-            self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
-
+            self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             self.robot_v_cmd = v_des
             self.robot_omega_cmd = w_des
             self.phi_prev = self.wheel_phi_cmd     # store previous command
@@ -205,7 +207,7 @@ class ControlNode():
     def publish(self):
         """ publish cmd messages """
         cmd = ControllerCmd()
-        cmd.velocity_arr.data = self.wheel_v_cmd
+        cmd.omega_arr.data = self.wheel_w_cmd
         cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
@@ -215,6 +217,7 @@ class ControlNode():
         flag = Bool()
         flag.data = self.last_waypoint_flag
         self.last_wp_pub.publish(flag)
+
 
     def run(self):
         rate = rospy.Rate(params.CONTROLLER_RATE)
