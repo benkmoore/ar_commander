@@ -1,5 +1,5 @@
 
-CONTROLLER_RATE = 60                       # rate in Hz
+CONTROLLER_RATE = 70                       # rate in Hz
 
 max_vel = 3                                # m/s
 
