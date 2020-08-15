@@ -3,6 +3,8 @@ CONTROLLER_RATE = 60                       # rate in Hz
 
 max_vel = 3                                # m/s
 
+wp_threshold = 0.05                        # m, waypoint threshold
+
 thetaControllerGains = {'kp':175, 'ki':0.03, 'kd':5e-8}
 
 pointControllerGains = {'kp':180, 'kd':0}
