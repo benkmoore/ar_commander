@@ -3,6 +3,8 @@ CONTROLLER_RATE = 10                       # rate in Hz
 
 max_vel = 3                                # m/s
 
+wp_threshold = 0.05                        # distance threshold at which we transition to next waypoint (m)
+
 thetaControllerGains = {'kp':3, 'ki':0.03, 'kd':5e-2}
 
 pointControllerGains = {'kp':0.5, 'kd':0}
