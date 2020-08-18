@@ -38,6 +38,7 @@ class Localizer():
             ser.open()
             ser.write(b'\r\r')
             time.sleep(1)
+            ser.write(b'lep\r')
             
         except Exception as e:
             print(e)
@@ -49,8 +50,8 @@ class Localizer():
             try:
                 # ser.write(b'\r\r')
 
-                time.sleep(0.5)
-                ser.write(b'lep\r')  
+                time.sleep(0.1)
+                # ser.write(b'lep\r')  
       
                 data=str(ser.readline())
                 #print data
