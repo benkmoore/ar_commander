@@ -21,7 +21,7 @@ class Localizer():
         self.confidence = None
 
         # publishers
-        self.pub_localize = rospy.Publisher('sensor/localize', Pose2D, queue_size=10)
+        self.pub_localize = rospy.Publisher('sensor/decawave_measurement', Pose2D, queue_size=10)
 
 
 
@@ -50,11 +50,11 @@ class Localizer():
                 # ser.write(b'\r\r')
 
                 time.sleep(0.5)
-                ser.write(b'apg\r')  
+                ser.write(b'lep\r')  
       
                 data=str(ser.readline())
-                # print data
-                posData = [int(s) for s in re.findall(r'-?\d+\.?\d', data)]
+                #print data
+                posData = [float(s) for s in re.findall(r'-?\d+\.?\d', data)]
                 if len(posData)>1:
                     print(posData)
                     self.pose2D.x = posData[0]
