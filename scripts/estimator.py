@@ -71,8 +71,12 @@ class Estimator():
             self.state.vel.data = (self.pos_meas - self.state.pos.data)/dt
             self.state.omega.data = (self.theta_meas - self.state.theta.data)/dt
 
-        self.state.pos.data = self.pos_meas
-        self.state.theta.data = self.theta_meas
+        if self.localization_filter.x is not None:
+            self.state.pos.data = self.localization_filter.x[0:2]
+            self.state.theta.data = self.theta_meas
+        else:
+            self.state.pos.data = self.pos_meas
+            self.state.theta.data = self.theta_meas
 
     def publish(self):
         self.pub_state.publish(self.state)
