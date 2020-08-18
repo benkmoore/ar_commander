@@ -56,7 +56,6 @@ class Localizer():
                 print data
                 if len(data) > 1:
                     data = np.array(data.split(','))
-                    print data
                     data = data[1:4]
                     data = data.astype(np.float)
                     print data
