@@ -31,7 +31,7 @@ ser.open()
 while True:
     try:
         ser.write(b'\r\r')
-        time.sleep(1)
+        time.sleep(0.1)
         ser.write(b'apg\r')        
         data=str(ser.readline())
         nos = [int(s) for s in re.findall(r'\b\d+\b', data)]
