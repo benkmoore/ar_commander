@@ -226,7 +226,7 @@ class ControlNode():
         cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
-        rospy.loginfo_throttle(1, cmd)
+        #rospy.loginfo_throttle(1, cmd)
         self.pub_cmds.publish(cmd)
 
         flag = Bool()

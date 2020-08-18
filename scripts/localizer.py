@@ -42,18 +42,14 @@ class Localizer():
 
         # ser.open()
         while not rospy.is_shutdown():
-            start = time.time()
             try:
-                # ser.write(b'\r\r')
-
-                #time.sleep(0.1)
                 # ser.write(b'lep\r')  
-                #self.ser.write(b'\n')
+                
                 data=str(self.ser.readline())
                 data = re.sub("[a-zA-Z]", "", data)
                 data = re.sub("[\r\n>]","",data)
-                print('*****')
-                print data
+                #print('*****')
+                #print data
                 if len(data) > 1:
                     data = np.array(data.split(','))
                     data = data[1:4]
@@ -64,21 +60,21 @@ class Localizer():
                     self.pose2D.theta = THETA
                     self.publish()
                 # print(data)
-                #time.sleep(0.01)
+                
 
             except Exception as e:
                 print(e)
-                #self.ser.close()
-                #time.sleep(1)
+                #self.ser.write(b'lep\r')
+                self.ser.close()
                 #self.startup()
                 #time.sleep(1)
                 #time.sleep(0.1)
                 pass
             except KeyboardInterrupt:
-                self.ser.close()
+                self.ser.write(b'lep\r')
+                #self.ser.close()
             end = time.time()
-            #print(1/(end-start))
-
+            
 
     def publish(self):
         self.pub_localize.publish(self.pose2D)
