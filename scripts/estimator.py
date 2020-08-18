@@ -85,12 +85,9 @@ class Estimator():
                 z = np.concatenate((self.pos_meas, self.theta_meas)) # measurement
                 u = np.concatenate((self.state.vel.data, np.array([self.state.omega.data]).reshape(-1)))
                 self.localization_filter.run(u, z)
+
             if self.state is not None:
                 self.publish()
-
-            if self.pos_meas is not None and self.localization_filter.x is not None:
-                print("Truth: {}, {}, Est: {}, {}".format(self.pos_meas[0], self.pos_meas[1], self.localization_filter.x[0], self.localization_filter.x[1]))
-                print("Error: {}".format(np.sqrt( (self.pos_meas[0]-self.localization_filter.x[0])**2 + (self.pos_meas[1]-self.localization_filter.x[1])**2 )))
 
             rate.sleep()
 
