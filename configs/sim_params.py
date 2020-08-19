@@ -12,4 +12,5 @@ pointControllerGains = {'kp':0.5, 'kd':0}
 
 trajectoryControllerGains = {'kp_pos':0.25, 'kp_th':0.75, 'kd_pos':0.5, 'k_ol':0.5}
 
-localizationFilterParams = {'Q':10*np.eye(3), 'R':0.01*np.eye(3)}
+# noise/uncertainty estimate on predict (Q) meas. (R) process and derivatives (d)
+localizationFilterParams = {'Q':10*np.eye(3), 'Q_d':100*np.eye(3), 'R':0.01*np.eye(3), 'R_d':100*np.eye(3)}

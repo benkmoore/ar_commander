@@ -27,6 +27,9 @@ class Estimator():
     def __init__(self):
         rospy.init_node('estimator')
 
+        # timestep
+        self.dt = 1. / RATE
+
         # incoming measurements (inputs)
         self.pos_meas = None
         self.theta_meas = None
@@ -35,12 +38,14 @@ class Estimator():
         self.state = None
 
         # init localization KF
-        A = np.eye(3)
-        B = np.eye(3)
-        C = np.eye(3)
-        Q = params.localizationFilterParams['Q'] # noise/uncertainty estimate on predict process
-        R = params.localizationFilterParams['R'] # noise/uncertainty estimate on meas. process
-        self.localization_filter = LocalizationFilter(rate=RATE, x0=None, sigma0=10*np.eye(3), A=A, B=B, C=C, Q=Q, R=R)
+        self.x = None #state
+        self.sigma = None #covariance
+        A = np.eye(6)
+        B = np.eye(6)
+        C = np.eye(6)
+        Q = np.block([[params.localizationFilterParams['Q'], np.zeros((3,3))], [np.zeros((3,3)), params.localizationFilterParams['Q_d']]])
+        R = np.block([[params.localizationFilterParams['R'], np.zeros((3,3))], [np.zeros((3,3)), params.localizationFilterParams['R_d']]])
+        self.localization_filter = LocalizationFilter(dt=self.dt, x0=None, sigma0=10*np.eye(6), A=A, B=B, C=C, Q=Q, R=R)
 
         # subscribers
         rospy.Subscriber('sensor/decawave_measurement', Pose2D, self.localizeCallback)
@@ -64,19 +69,20 @@ class Estimator():
 
         if self.state is None:   # initialize state
             self.state = State()
-            self.state.vel.data = np.zeros(2)
-            self.state.omega.data = 0
-        else:
-            dt = 1. / RATE
-            self.state.vel.data = (self.pos_meas - self.state.pos.data)/dt
-            self.state.omega.data = (self.theta_meas - self.state.theta.data)/dt
-
-        if self.localization_filter.x is not None:
-            self.state.pos.data = self.localization_filter.x[0:2]
-            self.state.theta.data = self.theta_meas
-        else:
             self.state.pos.data = self.pos_meas
             self.state.theta.data = self.theta_meas
+            self.state.vel.data = np.zeros(2)
+            self.state.omega.data = 0
+        else: # run localization filter
+            d = np.concatenate(((self.pos_meas - self.state.pos.data),(self.theta_meas - self.state.theta.data)))/self.dt #derviative
+            y = np.concatenate((self.pos_meas, self.theta_meas, d)) # measurement
+            u = np.concatenate((self.state.vel.data, np.array([self.state.omega.data]), np.zeros(3))).reshape(-1)
+            self.x, self.sigma = self.localization_filter.step(u, y)
+
+            self.state.pos.data = self.x[0:2]
+            self.state.theta.data = self.x[2]
+            self.state.vel.data = self.x[3:5]
+            self.state.omega.data = self.x[5]
 
     def publish(self):
         self.pub_state.publish(self.state)
@@ -85,14 +91,8 @@ class Estimator():
         rate = rospy.Rate(RATE) # 10 Hz
         while not rospy.is_shutdown():
             self.updateState()
-            if self.pos_meas is not None and self.state is not None:
-                z = np.concatenate((self.pos_meas, self.theta_meas)) # measurement
-                u = np.concatenate((self.state.vel.data, np.array([self.state.omega.data]).reshape(-1)))
-                self.localization_filter.run(u, z)
-
             if self.state is not None:
                 self.publish()
-
             rate.sleep()
 
 if __name__ == '__main__':
