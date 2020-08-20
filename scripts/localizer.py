@@ -42,6 +42,7 @@ class Localizer():
     def connect(self):        
         if not self.ser.is_open:
             self.ser.open()
+        #this command gets us into shell mode where we can talk to the board
         self.ser.write(b'\r\r')
         #this sleep is important until we find a better way
         time.sleep(1)
@@ -53,6 +54,7 @@ class Localizer():
         self.ser.reset_input_buffer()
         time.sleep(0.2)  
         if self.ser.in_waiting == 0:
+            #when the board receives 'lep' it returns the [x,y,z,confidence] data
             self.ser.write(b'lep\r')
 
 
