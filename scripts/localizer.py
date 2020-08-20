@@ -18,10 +18,11 @@ class Localizer():
         self.pose2D.x = None
         self.pose2D.y = None
         self.pose2D.theta = None
+        #confidence not used right now but i think we should in future
         self.confidence = None
-
         # publishers
         self.pub_localize = rospy.Publisher('sensor/decawave_measurement', Pose2D, queue_size=10)
+
 
     def startup(self):
         self.ser = serial.Serial()
@@ -33,22 +34,28 @@ class Localizer():
         self.ser.timeout = 1
         self.ser.open()
         self.ser.write(b'\r\r')
-        time.sleep(1)
-        self.ser.write(b'lep\r')
+        time.sleep(0.2)
+        print "startup"
+
+        #here we reset the input buffer to 0, then wait to see if it fills again
+        #if the buffer fills, this means that the board is already sending info down the serial line
+        #and if we send our command in this case ^ then it will stop the info.
+        self.ser.reset_input_buffer()
+        time.sleep(0.2)  
+        if self.ser.in_waiting == 0:
+            self.ser.write(b'lep\r')
 
 
     #check the data from the board using pyserial
     def checkSerial(self):
-
-        # ser.open()
+        fails = 0
+        #this while should maybe be something else, we have while not rospy.is_shutdown(): in run() as well
         while not rospy.is_shutdown():
             try:
-                # ser.write(b'lep\r')  
                 
-                data=str(self.ser.readline())
+                data = str(self.ser.readline())
                 data = re.sub("[a-zA-Z]", "", data)
                 data = re.sub("[\r\n>]","",data)
-                #print('*****')
                 #print data
                 if len(data) > 1:
                     data = np.array(data.split(','))
@@ -59,39 +66,51 @@ class Localizer():
                     self.pose2D.y = data[1]
                     self.pose2D.theta = THETA
                     self.publish()
-                # print(data)
-                
+                    print(data)
+                    fails = 0
+                else:
+                    #self.ser.write(b'lep\r')
+                    fails += 1
+                if fails > 10:
+                    print ('Localizer missed {} packages, check connection between boards + orientation of tag.').format(fails)
+                    
 
             except Exception as e:
                 print(e)
-                #self.ser.write(b'lep\r')
-                self.ser.close()
+                # self.ser.write(b'lep\r')
+                # self.ser.close()
                 #self.startup()
-                #time.sleep(1)
-                #time.sleep(0.1)
+               
                 pass
+
+            #we never actually currently enter this exception because the loop exits due to rospy shutdown                
             except KeyboardInterrupt:
-                self.ser.write(b'lep\r')
-                #self.ser.close()
-            end = time.time()
+                # self.ser.write(b'lep\r')
+                print "keyboard except"
+                self.ser.close()
             
 
     def publish(self):
         self.pub_localize.publish(self.pose2D)
 
 
+    def closeConnection(self):
+        self.ser.write(b'lep\r')
+        self.ser.reset_input_buffer()
+        self.ser.close()
+
+
     def run(self):
         self.startup()
         rate = rospy.Rate(RATE) # 10 Hz
         while not rospy.is_shutdown():
-            self.checkSerial()                
-
+            self.checkSerial()
+            self.closeConnection()     
             rate.sleep()
         #rospy.spin()
 
 
 
 if __name__ == '__main__':
-
     localizer = Localizer()
     localizer.run()
