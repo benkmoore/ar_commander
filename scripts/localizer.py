@@ -20,6 +20,7 @@ class Localizer():
         self.pose2D.theta = None
         #confidence not used right now but i think we should in future
         self.confidence = None
+        self.failConnect = 0
         # publishers
         self.pub_localize = rospy.Publisher('sensor/decawave_measurement', Pose2D, queue_size=10)
 
@@ -31,10 +32,10 @@ class Localizer():
         self.ser.bytesize = serial.EIGHTBITS
         self.ser.parity =serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
-        self.ser.timeout = 1
+        self.ser.timeout = 0.3
         self.ser.open()
         self.ser.write(b'\r\r')
-        time.sleep(0.2)
+        time.sleep(1)
         print "startup"
 
         #here we reset the input buffer to 0, then wait to see if it fills again
@@ -57,7 +58,8 @@ class Localizer():
                 data = re.sub("[a-zA-Z]", "", data)
                 data = re.sub("[\r\n>]","",data)
                 #print data
-                if len(data) > 1:
+                #3 is still the length even when we remove all the characters??
+                if len(data) > 3:
                     data = np.array(data.split(','))
                     data = data[1:4]
                     data = data.astype(np.float)
@@ -83,11 +85,7 @@ class Localizer():
                
                 pass
 
-            #we never actually currently enter this exception because the loop exits due to rospy shutdown                
-            except KeyboardInterrupt:
-                # self.ser.write(b'lep\r')
-                print "keyboard except"
-                self.ser.close()
+
             
 
     def publish(self):
@@ -105,7 +103,7 @@ class Localizer():
         rate = rospy.Rate(RATE) # 10 Hz
         while not rospy.is_shutdown():
             self.checkSerial()
-            self.closeConnection()     
+            # self.closeConnection()     
             rate.sleep()
         #rospy.spin()
 
