@@ -59,15 +59,13 @@ class ControlLoops():
 
         pos_des = wp[0:2]
         v_ol = (wp-wp_prev)[0:2]
+
         v_cmd = k_ol*v_ol + kp_pos*(pos_des-pos)
         theta_des = wp[2]
         theta_err = theta_des - theta
-        print(theta_err)
         idx = abs(theta_err) > np.pi/2
         theta_err -= 2*np.pi*np.sign(theta_err)*idx
         omega_cmd = kp_th*theta_err
-
-        print("th err: {}, th_d: {}, th_c: {}".format(theta_err, theta_des, theta))
 
         # saturate v_cmd
         v_cmd = np.clip(v_cmd, -params.max_vel, params.max_vel)
@@ -166,7 +164,7 @@ class ControlNode():
 
         # Convert to |V| and phi
         v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) #+ np.pi/2
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
 
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
