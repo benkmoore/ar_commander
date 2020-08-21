@@ -1,7 +1,6 @@
 
 CONTROLLER_RATE = 70                       # rate in Hz
 
-
 max_vel = 3                                # m/s
 
 wp_threshold = 0.05                        # distance threshold at which we transition to next waypoint (m)
