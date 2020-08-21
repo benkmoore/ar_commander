@@ -67,7 +67,6 @@ class ControlLoops():
         k_ol = params.trajectoryControllerGains['k_ol']
 
         pos_des = wp[0:2]
-
         v_ol = (wp-wp_prev)[0:2]
 
         v_cmd = k_ol*v_ol + kp_pos*(pos_des-pos)
@@ -121,7 +120,6 @@ class ControlNode():
 
         # publishers
         self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
-
         self.last_wp_pub = rospy.Publisher('controller/last_waypoint_flag', Bool, queue_size=10)
 
     ## Callback Functions
@@ -146,7 +144,6 @@ class ControlNode():
             wp = self.trajectory[self.traj_idx, :]
 
             # advance waypoints
-
             if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and self.traj_idx < self.trajectory.shape[0]-1:
                 self.traj_idx += 1
                 wp = self.trajectory[self.traj_idx, :]
@@ -192,7 +189,6 @@ class ControlNode():
 
         # map to desired omega (angular velocity) of wheels: w = v/r
         w_wheel = v_wheel/rcfg.wheel_radius
-
         return w_wheel, phi_cmd
 
     ## Main Loops
@@ -211,7 +207,6 @@ class ControlNode():
                 v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
                 self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             else:
-
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
                 self.last_waypoint_flag = True
@@ -234,7 +229,6 @@ class ControlNode():
         flag = Bool()
         flag.data = self.last_waypoint_flag
         self.last_wp_pub.publish(flag)
-
 
 
     def run(self):
