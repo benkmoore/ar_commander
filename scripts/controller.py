@@ -35,28 +35,17 @@ class ControlLoops():
         kp = params.thetaControllerGains['kp']
         ki = params.thetaControllerGains['ki']
         kd = params.thetaControllerGains['kd']
-        v_mag = params.trajectoryControllerGains['v_mag']
 
         theta_err = theta_des - theta
-        if abs(theta_err) < 0.25:
-            theta_dot_cmd = np.zeros(theta_err.shape)
-        else:
-            theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
-            theta_dot_cmd = 2.2 * v_mag * theta_dot_cmd/npl.norm(theta_dot_cmd)
+        theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
         return theta_dot_cmd
 
     def pointController(self, pos_des, pos, vel):
         kp = params.pointControllerGains['kp']
         kd = params.pointControllerGains['kd']
-        v_mag = params.trajectoryControllerGains['v_mag']
 
         p_err = pos_des - pos
         v_cmd = kp*p_err + kd*vel
-        if npl.norm(v_cmd) < 10**-5:
-            v_cmd = np.zeros(v_cmd.shape)
-        else:
-            v_cmd = v_mag * v_cmd/npl.norm(v_cmd)
-
         return v_cmd
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
@@ -171,13 +160,13 @@ class ControlNode():
 
         # Convert to |V| and phi
         v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = (np.arctan2(v_xy[1,:], v_xy[0,:]) + 2*np.pi) % (2*np.pi)
-        #print("------------")
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) + np.pi/2
+
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
-        idx = abs(phi_diff) > np.pi
-        phi_cmd -= 2*np.pi*np.sign(phi_diff)*idx
-        #v_wheel *= -1*idx + 1*~idx
+        idx = abs(phi_diff) > np.pi/2
+        phi_cmd -= np.pi*np.sign(phi_diff)*idx
+        v_wheel *= -1*idx + 1*~idx
 
         # enforce physical bounds
         idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
@@ -186,9 +175,9 @@ class ControlNode():
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
-
         # map to desired omega (angular velocity) of wheels: w = v/r
         w_wheel = v_wheel/rcfg.wheel_radius
+
         return w_wheel, phi_cmd
 
     ## Main Loops
@@ -205,7 +194,6 @@ class ControlNode():
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
                 v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
-                self.wheel_v_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
@@ -223,7 +211,7 @@ class ControlNode():
         cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
-        #rospy.loginfo_throttle(1, cmd)
+
         self.pub_cmds.publish(cmd)
 
         flag = Bool()
