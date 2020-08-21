@@ -33,7 +33,6 @@ class StateMachine():
         self.mode = Mode.INIT
         self.prev_mode = None
         self.mode_start_time = None
-        self.new_traj_flag = False
         self.trajectory = None
 
         self.new_traj_flag = False
@@ -61,7 +60,7 @@ class StateMachine():
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
 
     def lastWpCallback(self,msg):
-         self.last_wp_flag = msg.data
+        self.last_wp_flag = msg.data
 
     ## Decision Fuctions
     def hasInitialized(self):
