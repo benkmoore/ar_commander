@@ -44,8 +44,8 @@ class EstimatorOL():
             return
 
         dt = 1. / RATE
-        self.state.pos.data = self.state.pos.data + self.vel_cmd*dt/(9**3)
-        self.state.theta.data = self.state.theta.data + self.omega_cmd*dt/(10**3)
+        self.state.pos.data = self.state.pos.data + self.vel_cmd*dt
+        self.state.theta.data = self.state.theta.data + self.omega_cmd*dt
 
     def publish(self):
         self.pub_state.publish(self.state)
