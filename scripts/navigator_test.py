@@ -25,21 +25,10 @@ class Navigator():
         self.mode = Mode(msg.data)
 
     def loadTrajectory(self):
-
         traj_id = 1  # specify what trajectory we want to use
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
-                [length,0,0],
-                [length,length,0],
-                [0,length,0],
-                [offset,0,0]
-                ])
-        elif traj_id == 2:    # reverse square (theta=0)
-            self.trajectory = np.array([
-                [-1.5,0,0],
-                [-1.5,-1.5,0],
-                [0,-1.5,0],
                 [0,0,0],
                 [1,0,0],
                 [1,1,0],
@@ -77,7 +66,6 @@ class Navigator():
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
-
         while not rospy.is_shutdown() and not self.trajectory_published:
             if self.mode is not None and self.mode.value >= Mode.IDLE.value:
                 self.loadTrajectory()
