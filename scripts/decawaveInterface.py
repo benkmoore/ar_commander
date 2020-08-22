@@ -60,31 +60,30 @@ class decaInterface():
 
     #check the data from the board using pyserial
     def readSerial(self):
-        try:
-            data = str(self.ser.readline())
-            data = re.sub("[a-zA-Z]", "", data)
-            data = re.sub("[\r\n>]","",data)
-            #3 is still the length even when we remove all the characters??
-            if len(data) > 3:
-                data = np.array(data.split(','))
-                data = data[1:5]
-                data = data.astype(np.float)
-                print data
-                self.pose2D.x = data[0]
-                self.pose2D.y = data[1]
-                self.pose2D.theta = THETA
-                self.confidence = data[3]
-                self.publish()
-                self.readFails = 0
-            else:
-                self.readFails += 1
 
-                #if we dont read any pose data for this amount of tries then redo the serial connection
-            if self.readFails > 30:
-                #check connection between boards + orientation of tag.
-                rospy.logerr("readSerial failed to read serial data %s times. Check: 1. port name, 2. enough anchors in range, 3. orientation of tag.", self.readFails)
-                self.readFails = 0
-                self.connect()
+        data = str(self.ser.readline())
+        data = re.sub("[a-zA-Z]", "", data)
+        data = re.sub("[\r\n>]","",data)
+        #3 is still the length even when we remove all the characters??
+        if len(data) > 3:
+            data = np.array(data.split(','))
+            data = data[1:5]
+            data = data.astype(np.float)
+            self.pose2D.x = data[0]
+            self.pose2D.y = data[1]
+            self.pose2D.theta = THETA
+            self.confidence = data[3]
+            self.publish()
+            self.readFails = 0
+        else:
+            self.readFails += 1
+
+            #if we dont read any pose data for this amount of tries then redo the serial connection
+        if self.readFails > 30:
+            #check connection between boards + orientation of tag.
+            rospy.logerr("readSerial failed to read serial data %s times. Check: 1. port name, 2. enough anchors in range, 3. orientation of tag.", self.readFails)
+            self.readFails = 0
+            self.connect()
 
 
     def publish(self):
