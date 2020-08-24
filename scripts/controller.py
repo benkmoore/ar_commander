@@ -37,7 +37,7 @@ class ControlLoops():
         kd = params.thetaControllerGains['kd']
 
         theta_err = theta_des - theta
-        idx = abs(theta_err) > np.pi/2
+        idx = abs(theta_err) > np.pi
         theta_err -= 2*np.pi*np.sign(theta_err)*idx
         theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
         return theta_dot_cmd
@@ -164,7 +164,7 @@ class ControlNode():
 
         # Convert to |V| and phi
         v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) + np.pi/2
 
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
