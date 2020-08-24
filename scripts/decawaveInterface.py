@@ -10,7 +10,7 @@ from geometry_msgs.msg import Pose2D
 
 RATE = 10
 THETA = 0
-class decaInterface():
+class DecaInterface():
 
     def __init__(self):
         rospy.init_node('decaInterface')
@@ -106,5 +106,5 @@ class decaInterface():
 
 
 if __name__ == '__main__':
-    decaInterface = decaInterface()
+    decaInterface = DecaInterface()
     decaInterface.run()
