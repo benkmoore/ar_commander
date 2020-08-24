@@ -3,7 +3,7 @@ import numpy.linalg as npl
 
 
 class LocalizationFilter():
-    def __init__(self, dt, x0, sigma0, A, B, C, Q, R):
+    def __init__(self, dt, x0, sigma0, A, B, C, D, Q, R):
         self.dt = dt
         self.x = x0
         self.x_pred = None
@@ -12,6 +12,7 @@ class LocalizationFilter():
         self.A = A
         self.B = B
         self.C = C
+        self.D = D
         self.Q = Q
         self.R = R
 
@@ -20,7 +21,7 @@ class LocalizationFilter():
         self.sigma_pred = npl.multi_dot([self.A, self.sigma, self.A.T]) + self.Q
 
     def update(self, y):
-        y_delta = np.concatenate((y[0:2] - self.x_pred[0:2], np.zeros(1), y[3:5] - self.x_pred[3:5], np.zeros(1))) # only have 2d localization, no theta measurement yet
+        y_delta = y - self.x_pred
         innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + self.R)
 
         self.x = self.x_pred + npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, y_delta])
