@@ -3,7 +3,7 @@ import numpy.linalg as npl
 
 
 class LocalizationFilter():
-    def __init__(self, dt, x0, sigma0, A, B, C, D, Q, R):
+    def __init__(self, dt, x0, sigma0, A, B, C, Q, R):
         self.dt = dt
         self.x = x0
         self.x_pred = None
@@ -12,7 +12,6 @@ class LocalizationFilter():
         self.A = A
         self.B = B
         self.C = C
-        self.D = D
         self.Q = Q
         self.R = R
 
@@ -29,7 +28,7 @@ class LocalizationFilter():
 
     def step(self, u, y):
         if self.x is None:
-            self.x = y
+            self.x = np.matmul(npl.pinv(self.C), y)
 
         self.predict(u)
         self.update(y)
