@@ -105,7 +105,7 @@ class Estimator():
 
             self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos)
             self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta)
-            print(self.pos_state, self.theta_state)
+
             self.state.pos.data = self.pos_state[0:2]
             self.state.vel.data = self.pos_state[2:4]
             self.state.theta.data = self.theta_state[0]
