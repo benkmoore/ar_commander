@@ -54,6 +54,7 @@ add_message_files(
     Trajectory.msg
     ControllerCmd.msg
     TOF.msg
+    Decawave.msg
 )
 
 ## Generate services in the 'srv' folder
