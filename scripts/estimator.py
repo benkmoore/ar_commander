@@ -60,10 +60,7 @@ class Estimator():
     def decawaveCallback(self, msg):
         self.theta_meas = msg.theta.data
         # transform pos_meas to center corner of robot
-        if self.state is not None:
-            tf_angle = self.state.theta.data
-        else:
-            tf_angle = self.theta_meas
+        tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
         self.pos_meas1 = np.array([msg.x1.data-rcfg.L*np.sin(tf_angle),
                                     msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
         self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle),
