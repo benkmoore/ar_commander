@@ -123,14 +123,8 @@ class GetPose():
 
 
     def getTheta(self):
-        # slope = (self.decaInterfaceY.pose2D.y-self.decaInterfaceX.pose2D.y)/(self.decaInterfaceY.pose2D.x-self.decaInterfaceX.pose2D.x)
-        # miniTheta = np.arctan(slope)
-
-        #snap midpoint to 0,0: to use arctan 2, i translate the position of the robot until the point between both boards
-        #is at (0,0), then get the angle to the decawave board on the x axis from the line y = 0
-        midPointAdjust = [0-self.decaInterfaceX.pose2D.x+self.decaInterfaceY.pose2D.x, 0-self.decaInterfaceX.pose2D.y+self.decaInterfaceY.pose2D.y]
-        XSensorTranslated = (self.decaInterfaceX.pose2D.x+midPointAdjust[0],self.decaInterfaceX.pose2D.y+midPointAdjust[1])
-        theta = np.arctan2(XSensorTranslated[1],XSensorTranslated[0]) + np.pi/4
+        theta = np.arctan2(-(self.decaInterfaceY.pose2D.y-self.decaInterfaceX.pose2D.y) ,-(self.decaInterfaceY.pose2D.x-self.decaInterfaceX.pose2D.x)) + np.pi/4
+        if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
 
         self.absolutePos.x1.data = self.decaInterfaceY.pose2D.x
         self.absolutePos.y1.data = self.decaInterfaceY.pose2D.y
