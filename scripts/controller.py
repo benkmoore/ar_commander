@@ -164,7 +164,7 @@ class ControlNode():
 
         # Convert to |V| and phi
         v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:]) + np.pi/2
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
 
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
