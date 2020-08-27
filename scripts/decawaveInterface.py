@@ -109,10 +109,10 @@ class GetPose():
 
         #Decawave is a msg type
         self.absolutePos = Decawave()
-        self.decaInterfaceY = DecaInterface(port1)
-        self.decaInterfaceY.connect()
-        self.decaInterfaceX = DecaInterface(port2)
-        self.decaInterfaceX.connect()
+        self.boardY = DecaInterface(port1)
+        self.boardY.connect()
+        self.boardX = DecaInterface(port2)
+        self.boardX.connect()
 
         # publishers
         self.pub_decaInterface = rospy.Publisher('sensor/decawave_measurement', Decawave, queue_size=10)
@@ -123,23 +123,23 @@ class GetPose():
 
 
     def getTheta(self):
-        theta = np.arctan2(-(self.decaInterfaceY.pose2D.y-self.decaInterfaceX.pose2D.y) ,-(self.decaInterfaceY.pose2D.x-self.decaInterfaceX.pose2D.x)) + np.pi/4
+        theta = np.arctan2(-(self.boardY.pose2D.y-self.boardX.pose2D.y) ,-(self.boardY.pose2D.x-self.boardX.pose2D.x)) + np.pi/4
         if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
 
-        self.absolutePos.x1.data = self.decaInterfaceY.pose2D.x
-        self.absolutePos.y1.data = self.decaInterfaceY.pose2D.y
-        self.absolutePos.x2.data = self.decaInterfaceX.pose2D.x
-        self.absolutePos.y2.data = self.decaInterfaceX.pose2D.y
+        self.absolutePos.x1.data = self.boardY.pose2D.x
+        self.absolutePos.y1.data = self.boardY.pose2D.y
+        self.absolutePos.x2.data = self.boardX.pose2D.x
+        self.absolutePos.y2.data = self.boardX.pose2D.y
         self.absolutePos.theta.data = theta
 
 
     def run(self):
         rate = rospy.Rate(RATE) # 10 Hz
         while not rospy.is_shutdown():
-            self.decaInterfaceY.run()
-            self.decaInterfaceX.run()
+            self.boardY.run()
+            self.boardX.run()
             #need something else below to publish the location of 1 board if only 1 receives data due to reasons (bad line of sight, noise etc)
-            if self.decaInterfaceX.dataRead and self.decaInterfaceY.dataRead:
+            if self.boardX.dataRead and self.boardY.dataRead:
                 self.getTheta()
                 self.publish()
 
