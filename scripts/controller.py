@@ -37,6 +37,8 @@ class ControlLoops():
         kd = params.thetaControllerGains['kd']
 
         theta_err = theta_des - theta
+        idx = abs(theta_err) > np.pi
+        theta_err -= 2*np.pi*np.sign(theta_err)*idx
         theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
         return theta_dot_cmd
 
@@ -61,6 +63,8 @@ class ControlLoops():
         v_cmd = k_ol*v_ol + kp_pos*(pos_des-pos)
         theta_des = wp[2]
         theta_err = theta_des - theta
+        idx = abs(theta_err) > np.pi
+        theta_err -= 2*np.pi*np.sign(theta_err)*idx
         omega_cmd = kp_th*theta_err
 
         # saturate v_cmd

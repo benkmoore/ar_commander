@@ -43,14 +43,18 @@ class Navigator():
             s = ( 1 + np.sin(2 * np.pi * t) )
             self.trajectory = np.hstack([t,s,np.zeros(t.shape)])
         elif traj_id == 4: # figure of eight
-            t = np.linspace(0,1.8*np.pi)[:, np.newaxis] # cut short due to bug in navigator with same start and end point
+            t = np.linspace(0,2*np.pi)[:, np.newaxis]
             a = 3
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
-            self.trajectory = np.hstack([x,y,np.zeros(t.shape)])
+            self.trajectory = np.hstack([x,y,t])
         elif traj_id == 5: # rotate on spot
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
             self.trajectory = np.hstack([np.zeros(t.shape),np.zeros(t.shape),t])
+        elif traj_id == 6: # rotate along line
+            t = np.linspace(0,-2*np.pi,10)[:, np.newaxis]
+            Y = np.linspace(0,10, 10)[:, np.newaxis]
+            self.trajectory = np.hstack([np.zeros(t.shape),Y,t])
         else:
             raise ValueError("Invalid traj_id")
 
