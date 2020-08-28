@@ -5,11 +5,10 @@ import re
 import sys
 import rospy
 import numpy as np
-from geometry_msgs.msg import Pose2D
 from ar_commander.msg import Decawave
 
-
-
+# timeout in seconds for how long we try to read serial data if no data immediately available
+SERIALTIMEOUT = 0.3
 RATE = 10
 
 #-------------Work in progress------------------#
@@ -18,23 +17,20 @@ class DecaInterface():
 
     def __init__(self,port):
 
-        # pySerial serial stuff
+        # pySerial parameters set to match decawave params
         self.ser = serial.Serial()
         self.ser.port = port
+        # baudrate is bits per second expected on the serial channel (the deca boards use 115200)
         self.ser.baudrate = 115200
         self.ser.bytesize = serial.EIGHTBITS
         self.ser.parity =serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
-        self.ser.timeout = 0.3
+        self.ser.timeout = SERIALTIMEOUT
 
-        #Pose stuff, theta not used yet
-        self.pose2D = Pose2D()
-        self.pose2D.x = None
-        self.pose2D.y = None
-        self.pose2D.theta = None
+        self.x = None
+        self.y = None
 
-        #confidence not published right now but we will soon
-        #its the value that the boards give for how confident they are
+        #confidence not published right now, its the value that the boards give for how confident they are
         self.confidence = None
         self.readFails = 0
         #flag to check if board has read good data
@@ -73,8 +69,8 @@ class DecaInterface():
             data = data[1:5]
             data = data.astype(np.float)
             print self.ser.port, data
-            self.pose2D.x = data[0]
-            self.pose2D.y = data[1]
+            self.x = data[0]
+            self.y = data[1]
             self.confidence = data[3]
             self.readFails = 0
             self.dataRead = 1
@@ -95,10 +91,6 @@ class DecaInterface():
         self.ser.write(b'lep\r')
         self.ser.reset_input_buffer()
         self.ser.close()
-
-
-    def run(self):
-        self.readSerial()
 
 
 
@@ -122,25 +114,25 @@ class GetPose():
         self.pub_decaInterface.publish(self.absolutePos)
 
 
-    def getTheta(self):
-        theta = np.arctan2(-(self.boardY.pose2D.y-self.boardX.pose2D.y) ,-(self.boardY.pose2D.x-self.boardX.pose2D.x)) + np.pi/4
+    def obtainMeasurements(self):
+        theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
         if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
 
-        self.absolutePos.x1.data = self.boardY.pose2D.x
-        self.absolutePos.y1.data = self.boardY.pose2D.y
-        self.absolutePos.x2.data = self.boardX.pose2D.x
-        self.absolutePos.y2.data = self.boardX.pose2D.y
+        self.absolutePos.x1.data = self.boardY.x
+        self.absolutePos.y1.data = self.boardY.y
+        self.absolutePos.x2.data = self.boardX.x
+        self.absolutePos.y2.data = self.boardX.y
         self.absolutePos.theta.data = theta
 
 
     def run(self):
         rate = rospy.Rate(RATE) # 10 Hz
         while not rospy.is_shutdown():
-            self.boardY.run()
-            self.boardX.run()
+            self.boardY.readSerial()
+            self.boardX.readSerial()
             #need something else below to publish the location of 1 board if only 1 receives data due to reasons (bad line of sight, noise etc)
             if self.boardX.dataRead and self.boardY.dataRead:
-                self.getTheta()
+                self.obtainMeasurements()
                 self.publish()
 
             rate.sleep()
