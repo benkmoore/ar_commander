@@ -86,7 +86,6 @@ class Estimator():
         R_theta = params.thetaFilterParams['R']
         self.theta_filter = LocalizationFilter(dt=self.dt, x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, R=R_theta)
 
-
     def updateState(self):
         """
         main estimator function
