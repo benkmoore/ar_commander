@@ -68,7 +68,6 @@ class DecaInterface():
             data = np.array(data.split(','))
             data = data[1:5]
             data = data.astype(np.float)
-            print self.ser.port, data
             self.x = data[0]
             self.y = data[1]
             self.confidence = data[3]
