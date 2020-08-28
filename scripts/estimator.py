@@ -67,7 +67,7 @@ class Estimator():
                                     msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
 
     def initPosKF(self):
-        self.pos_state = None #state
+        self.pos_state = None #state: [pos_x, pos_y, vel_x, vel_y]
         self.pos_cov = None #covariance
         A_pos = np.eye(4)
         B_pos = np.block([[np.eye(2)], [np.zeros((2,2))]])
@@ -77,7 +77,7 @@ class Estimator():
         self.pos_filter = LocalizationFilter(dt=self.dt, x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, R=R_pos)
 
     def initThetaKF(self):
-        self.theta_state = None #state
+        self.theta_state = None #state: [theta, theta_dot]
         self.theta_cov = None #covariance
         A_theta = np.eye(2)
         B_theta = np.array([[1],[0]])

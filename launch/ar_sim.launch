@@ -5,6 +5,9 @@
     <!-- Set path to ar_commander repo -->
     <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
 
+    <!-- Set path to gazebo for sim_interface -->
+    <param name="GAZEBO_DIR" value="$(find gazebo_interface)" />
+
     <!-- launch ar_sim -->
     <include file="$(find gazebo_interface)/launch/gazebo_sim.launch" />
 
