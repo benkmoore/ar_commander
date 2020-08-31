@@ -48,7 +48,7 @@ class Estimator():
 
         # subscribers
         rospy.Subscriber('sensor/decawave_measurement', Decawave, self.decawaveCallback)
-        rospy.Subscriber('/controller_cmds', ControllerCmd, self.controllerCmdCallback)
+        rospy.Subscriber('controller_cmds', ControllerCmd, self.controllerCmdCallback)
 
         # publishers
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)

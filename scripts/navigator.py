@@ -34,7 +34,7 @@ class Navigator():
         rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
 
         # publishers
-        self.pub_trajectory = rospy.Publisher('/cmd_trajectory', Trajectory, queue_size=10)
+        self.pub_trajectory = rospy.Publisher('cmd_trajectory', Trajectory, queue_size=10)
 
 
     def stateCallback(self, msg):
