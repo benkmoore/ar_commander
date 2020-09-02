@@ -1,0 +1,23 @@
+<launch>
+	<arg name="robot_id"/>
+	<arg name="robot_tf"/>
+	<arg name="init_pose"/>
+
+	<!-- Set paths to repos -->
+    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+	<param name="GAZEBO_DIR" value="$(find gazebo_interface)" />
+
+	<!-- Set sim environment -->
+	<param name="ENV" value="sim" />
+
+	<!-- Spawn robot in sim -->
+	<param name="tf_prefix" value="$(arg robot_tf)" />
+	<include file="$(find gazebo_interface)/launch/gazebo_sim.launch" >
+		<arg name="init_pose" value="$(arg init_pose)" />
+		<arg name="robot_id" value="$(arg robot_id)" />
+	</include>
+
+	<!-- Launch autonomy stack -->
+	<include file="$(find ar_commander)/launch/autonomy_stack.launch" />
+
+</launch>
