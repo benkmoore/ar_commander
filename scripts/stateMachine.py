@@ -43,7 +43,7 @@ class StateMachine():
 
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
-        rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
+        rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
         rospy.Subscriber('controller/last_waypoint_flag', Bool, self.lastWpCallback)
 
         # publishers

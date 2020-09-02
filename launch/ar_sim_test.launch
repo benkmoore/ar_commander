@@ -1,19 +1,25 @@
 <launch>
-    <!-- Set enviroment variable to sim -->
-    <param name="ENV" value="sim" />
+    <!-- Create world -->
+    <include file="$(find ar_sim)/launch/world.launch"/>
 
-    <!-- Set path to ar_commander repo -->
-    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+    <group ns="robot1">
+        <!-- Set enviroment variable to sim -->
+        <param name="ENV" value="sim" />
 
-    <!-- Set path to gazebo for sim_interface -->
-    <param name="AR_SIM_DIR" value="$(find ar_sim)" />
+        <!-- Set path to ar repos -->
+        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
 
-    <!-- launch ar_sim -->
-    <include file="$(find ar_sim)/launch/gazebo_sim.launch" />
+        <!-- launch ar_sim -->
+        <include file="$(find ar_sim)/launch/gazebo_sim.launch" >
+            <arg name="robot_id" value="robot1" />
+            <arg name="init_pose" value="-x 0 -y 0 -z 0" />
+        </include>
 
-    <!-- launch ar_commander -->
-    <node pkg="ar_commander" type="estimator.py" name="Estimator" output="screen" />
-    <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
-    <node pkg="ar_commander" type="navigator_test.py" name="Navigator" output="screen" />
-    <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+        <!-- launch ar_commander -->
+        <node pkg="ar_commander" type="estimator.py" name="Estimator" output="screen" />
+        <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
+        <node pkg="ar_commander" type="navigator_test.py" name="Navigator" output="screen" />
+        <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+    </group>
 </launch>

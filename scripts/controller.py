@@ -108,11 +108,11 @@ class ControlNode():
 
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
-        rospy.Subscriber('/cmd_trajectory', Trajectory, self.trajectoryCallback)
+        rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
         rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
 
         # publishers
-        self.pub_cmds = rospy.Publisher('/controller_cmds', ControllerCmd, queue_size=10)
+        self.pub_cmds = rospy.Publisher('controller_cmds', ControllerCmd, queue_size=10)
         self.last_wp_pub = rospy.Publisher('controller/last_waypoint_flag', Bool, queue_size=10)
 
     ## Callback Functions
