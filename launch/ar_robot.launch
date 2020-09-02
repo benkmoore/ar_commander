@@ -5,14 +5,13 @@
 
 	<!-- Set paths to repos -->
     <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
-	<param name="GAZEBO_DIR" value="$(find gazebo_interface)" />
+	<param name="AR_SIM_DIR" value="$(find ar_sim)" />
 
 	<!-- Set sim environment -->
 	<param name="ENV" value="sim" />
 
 	<!-- Spawn robot in sim -->
-	<param name="tf_prefix" value="$(arg robot_tf)" />
-	<include file="$(find gazebo_interface)/launch/gazebo_sim.launch" >
+	<include file="$(find ar_sim)/launch/gazebo_sim.launch" >
 		<arg name="init_pose" value="$(arg init_pose)" />
 		<arg name="robot_id" value="$(arg robot_id)" />
 	</include>

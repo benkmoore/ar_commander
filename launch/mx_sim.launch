@@ -1,7 +1,7 @@
 
 <launch>
 	<!-- Create world -->
-	<include file="$(find gazebo_interface)/launch/world.launch"/>
+	<include file="$(find ar_sim)/launch/world.launch"/>
 
 	<!-- Create Robot 1 -->
 	<group ns="robot1">
