@@ -1,0 +1,26 @@
+<!-- Open loop sim launch -->
+<launch>
+    <!-- Create world -->
+    <include file="$(find ar_sim)/launch/world.launch"/>
+
+    <group ns="robot1">
+        <!-- Set enviroment variable to sim -->
+        <param name="ENV" value="sim" />
+
+        <!-- Set path to ar repos -->
+        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+        <!-- launch ar_sim -->
+        <include file="$(find ar_sim)/launch/gazebo_sim.launch" >
+            <arg name="robot_id" value="robot1" />
+            <arg name="init_pose" value="-x 0 -y 0 -z 0" />
+        </include>
+
+        <!-- launch ar_commander -->
+        <node pkg="ar_commander" type="estimator_ol.py" name="Estimator" output="screen" />
+        <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
+        <node pkg="ar_commander" type="navigator.py" name="Navigator" output="screen" />
+        <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+    </group>
+</launch>
