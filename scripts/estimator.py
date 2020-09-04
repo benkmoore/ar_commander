@@ -32,11 +32,8 @@ class Estimator():
 
         # incoming measurements (inputs)
         self.pos_meas1 = None
-        self.pos_meas1_prev = None
         self.pos_meas2 = None
-        self.pos_meas2_prev = None
         self.theta_meas = None
-        self.theta_meas_prev = None
 
         # controller cmds
         self.vel_cmd = None
@@ -61,10 +58,6 @@ class Estimator():
         self.omega_cmd = msg.robot_omega.data
 
     def decawaveCallback(self, msg):
-        self.pos_meas1_prev = self.pos_meas1
-        self.pos_meas2_prev = self.pos_meas2
-        self.theta_meas_prev = self.theta_meas
-
         self.theta_meas = msg.theta.data
         # transform pos_meas to center corner of robot
         tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
@@ -78,9 +71,9 @@ class Estimator():
         self.pos_cov = None #covariance
         A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2,2))]])
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
-        C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.eye(2)], [np.zeros((2,2)), np.eye(2)]])
+        C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
-        R_pos = np.block([[params.positionFilterParams['R'], np.zeros((4,4))], [np.zeros((4,4)), params.positionFilterParams['R_d']]])
+        R_pos = np.block([[params.positionFilterParams['R'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['R_d']]])
         self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, R=R_pos)
 
     def initThetaKF(self):
@@ -88,30 +81,10 @@ class Estimator():
         self.theta_cov = None #covariance
         A_theta = np.array([[1, 0], [0, 0]])
         B_theta = np.array([[self.dt],[1]])
-        C_theta = np.eye(2)
+        C_theta = np.array([1, 0]).reshape(1,2)
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
-        R_theta = np.array([[params.thetaFilterParams['R'], 0], [0, params.thetaFilterParams['R_d']]])
+        R_theta = params.thetaFilterParams['R']
         self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, R=R_theta)
-
-    def getThetaKFMeas(self):
-        if self.theta_meas_prev is not None:
-            omega_meas = (self.theta_meas - self.theta_meas_prev)
-            if np.sign(self.theta_meas) != np.sign(self.theta_meas_prev) and abs(omega_meas) > np.pi:
-                omega_meas = omega_meas % np.pi
-                omega_meas = -1*omega_meas
-            omega_meas /= self.dt
-        else:
-            omega_meas = np.zeros(1)
-
-        return np.hstack((self.theta_meas, omega_meas))
-
-    def getPosKFMeas(self):
-        if self.pos_meas1_prev is not None and self.pos_meas2_prev is not None:
-            v_meas = np.hstack(((self.pos_meas1-self.pos_meas1_prev), (self.pos_meas2-self.pos_meas2_prev)))/self.dt
-        else:
-            v_meas = np.zeros(4)
-
-        return np.concatenate((self.pos_meas1, self.pos_meas2, v_meas))
 
     def updateState(self):
         """
@@ -131,10 +104,10 @@ class Estimator():
             self.state.omega.data = 0
         else: # run localization filter
             u_pos = self.vel_cmd
-            y_pos = self.getPosKFMeas()
+            y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
 
             u_theta = np.array([self.omega_cmd])
-            y_theta = self.getThetaKFMeas()
+            y_theta = np.array([self.theta_meas])
 
             self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos)
             self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta)
