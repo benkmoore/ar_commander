@@ -6,7 +6,6 @@ class LocalizationFilter():
     def __init__(self, x0, sigma0, A, B, C, Q, R):
         self.x = x0
         self.x_pred = None
-        self.x_prev = x0
         self.sigma = sigma0
         self.sigma_pred = None
         self.A = A
