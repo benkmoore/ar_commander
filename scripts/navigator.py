@@ -4,7 +4,7 @@ import numpy as np
 import numpy.linalg as npl
 import rospy
 
-from astar import AStar, DetOccupancyGrid2D
+from navigator_lib.astar import AStar, DetOccupancyGrid2D
 from stateMachine import Mode
 
 from ar_commander.msg import Trajectory, State
