@@ -3,8 +3,7 @@ import numpy.linalg as npl
 
 
 class LocalizationFilter():
-    def __init__(self, dt, x0, sigma0, A, B, C, Q, R):
-        self.dt = dt
+    def __init__(self, x0, sigma0, A, B, C, Q, R):
         self.x = x0
         self.x_pred = None
         self.sigma = sigma0
@@ -16,7 +15,7 @@ class LocalizationFilter():
         self.R = R
 
     def predict(self, u):
-        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u)*self.dt
+        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u)
         self.sigma_pred = npl.multi_dot([self.A, self.sigma, self.A.T]) + self.Q
 
     def update(self, y):

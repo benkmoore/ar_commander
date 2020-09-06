@@ -69,22 +69,22 @@ class Estimator():
     def initPosKF(self):
         self.pos_state = None #state: [pos_x, pos_y, vel_x, vel_y]
         self.pos_cov = None #covariance
-        A_pos = np.eye(4)
-        B_pos = np.block([[np.eye(2)], [np.zeros((2,2))]])
+        A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2,2))]])
+        B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
         C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
         R_pos = np.block([[params.positionFilterParams['R'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['R_d']]])
-        self.pos_filter = LocalizationFilter(dt=self.dt, x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, R=R_pos)
+        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, R=R_pos)
 
     def initThetaKF(self):
         self.theta_state = None #state: [theta, theta_dot]
         self.theta_cov = None #covariance
-        A_theta = np.eye(2)
-        B_theta = np.array([[1],[0]])
+        A_theta = np.array([[1, 0], [0, 0]])
+        B_theta = np.array([[self.dt],[1]])
         C_theta = np.array([1, 0]).reshape(1,2)
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
         R_theta = params.thetaFilterParams['R']
-        self.theta_filter = LocalizationFilter(dt=self.dt, x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, R=R_theta)
+        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, R=R_theta)
 
     def updateState(self):
         """
@@ -105,6 +105,7 @@ class Estimator():
         else: # run localization filter
             u_pos = self.vel_cmd
             y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
+
             u_theta = np.array([self.omega_cmd])
             y_theta = np.array([self.theta_meas])
 
