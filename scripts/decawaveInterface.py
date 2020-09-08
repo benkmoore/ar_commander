@@ -5,6 +5,7 @@ import re
 import sys
 import rospy
 import numpy as np
+import collections
 from ar_commander.msg import Decawave
 
 # timeout in seconds for how long we try to read serial data if no data immediately available
@@ -110,6 +111,11 @@ class GetPose():
         self.pos2_prev = None
         self.theta_prev = None
 
+        # sample covariance deque
+        self.pos1_q = collections.deque([])
+        self.pos2_q = collections.deque([])
+        self.N = 10 # number of samples in covariance
+
         # publishers
         self.pub_decaInterface = rospy.Publisher('sensor/decawave_measurement', Decawave, queue_size=10)
 
@@ -118,34 +124,46 @@ class GetPose():
         self.pub_decaInterface.publish(self.absolutePos)
 
 
-    def obtainMeasurements(self):
-        theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
-        if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
-
-        # pos 1 on Y axis arm
-        self.absolutePos.x1.data = self.boardY.x
-        self.absolutePos.y1.data = self.boardY.y
-        self.absolutePos.std1.data = 1/self.boardY.confidence
-        # pos 2 on X axis arm
-        self.absolutePos.x2.data = self.boardX.x
-        self.absolutePos.y2.data = self.boardX.y
-        self.absolutePos.std2.data = 1/self.boardX.confidence
-        # theta
-        self.absolutePos.theta.data = theta
+    def calculateCovs(self):
         pos1 = np.array([self.absolutePos.x1.data, self.absolutePos.y1.data])
         pos2 = np.array([self.absolutePos.x2.data, self.absolutePos.y2.data])
+        if len(self.pos1_q) >= self.N or len(self.pos2_q) >= self.N:
+            _ = self.pos1_q.popleft()
+            _ = self.pos2_q.popleft()
+        self.pos1_q.append(pos1)
+        self.pos2_q.append(pos2)
+
+        self.absolutePos.cov1.data = np.cov(np.asarray(self.pos1_q))
+        self.absolutePos.cov2.data = np.cov(np.asarray(self.pos2_q))
+
         if None not in (self.pos1_prev, self.pos2_prev, self.theta_prev):
-            delta_pos1 = np.mean(pos1 - self.pos1_prev)
-            delta_pos2 = np.mean(pos2 - self.pos2_prev)
+            delta_pos1 = pos1 - self.pos1_prev
+            delta_pos2 = pos2 - self.pos2_prev
         else:
             delta_pos1 = delta_pos2 = delta_theta = 1
-        self.absolutePos.std_theta.data = abs(delta_theta/delta_pos2)*self.absolutePos.std2.data + abs(delta_theta/delta_pos1)*self.absolutePos.std1.data
+        self.absolutePos.cov_theta.data = np.matmul(abs(delta_theta/delta_pos1), self.absolutePos.cov1.data) //
+                                     + np.matmul(abs(delta_theta/delta_pos2), self.absolutePos.cov2.data)
 
-        # update
+        # update previous measurements
         self.pos1_prev = pos1
         self.pos2_prev = pos2
         self.theta_prev = theta
 
+
+    def obtainMeasurements(self):
+        # pos 1 on Y axis arm
+        self.absolutePos.x1.data = self.boardY.x
+        self.absolutePos.y1.data = self.boardY.y
+        # pos 2 on X axis arm
+        self.absolutePos.x2.data = self.boardX.x
+        self.absolutePos.y2.data = self.boardX.y
+        # theta
+        self.absolutePos.theta.data = theta
+        theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
+        if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
+
+        # find pos1, pos2 & theta covariances
+        self.calculateCovs()
 
     def run(self):
         rate = rospy.Rate(RATE) # 10 Hz

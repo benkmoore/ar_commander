@@ -3,7 +3,7 @@ import numpy.linalg as npl
 
 
 class LocalizationFilter():
-    def __init__(self, x0, sigma0, A, B, C, Q, R):
+    def __init__(self, x0, sigma0, A, B, C, Q, w):
         self.x = x0
         self.x_pred = None
         self.sigma = sigma0
@@ -12,21 +12,21 @@ class LocalizationFilter():
         self.B = B
         self.C = C
         self.Q = Q
-        self.R = R
+        self.w = w
 
     def predict(self, u):
-        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u)
+        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u) + self.w
         self.sigma_pred = npl.multi_dot([self.A, self.sigma, self.A.T]) + self.Q
 
-    def update(self, y):
+    def update(self, y, R):
         y_delta = y - np.matmul(self.C, self.x_pred)
-        innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + self.R)
+        innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
 
         self.x = self.x_pred + npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, y_delta])
         self.sigma = self.sigma_pred - npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, self.C, self.sigma_pred])
 
-    def step(self, u, y):
+    def step(self, u, y, R):
         self.predict(u)
-        self.update(y)
+        self.update(y, R)
 
         return self.x, self.sigma
