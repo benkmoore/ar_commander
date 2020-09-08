@@ -136,13 +136,18 @@ class GetPose():
         self.absolutePos.cov1.data = np.cov(np.asarray(self.pos1_q))
         self.absolutePos.cov2.data = np.cov(np.asarray(self.pos2_q))
 
-        if None not in (self.pos1_prev, self.pos2_prev, self.theta_prev):
+        if self.pos1_prev is None or self.pos2_prev is None or self.theta_prev is None:
+            delta_pos1 = delta_pos2 = np.ones(2)
+            delta_theta = 1
+        else:
             delta_pos1 = pos1 - self.pos1_prev
             delta_pos2 = pos2 - self.pos2_prev
-        else:
-            delta_pos1 = delta_pos2 = delta_theta = 1
-        self.absolutePos.cov_theta.data = np.matmul(abs(delta_theta/delta_pos1), self.absolutePos.cov1.data) //
-                                     + np.matmul(abs(delta_theta/delta_pos2), self.absolutePos.cov2.data)
+            delta_theta = theta - self.theta_prev
+
+        dth_dp1 = abs(delta_theta/delta_pos1)
+        dth_dp2 = abs(delta_theta/delta_pos2)
+        self.absolutePos.cov_theta.data = npl.multi_dot((dth_dp1, self.absolutePos.cov1.data, dth_dp1)) \
+                                            + npl.multi_dot((dth_dp2, self.absolutePos.cov2.data, dth_dp2))
 
         # update previous measurements
         self.pos1_prev = pos1

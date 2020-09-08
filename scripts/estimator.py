@@ -81,7 +81,8 @@ class Estimator():
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
         C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
-        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, w=)
+        w_pos = np.zeros(2)
+        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, w=w_pos)
 
     def initThetaKF(self):
         self.theta_state = None #state: [theta, theta_dot]
@@ -90,7 +91,8 @@ class Estimator():
         B_theta = np.array([[self.dt],[1]])
         C_theta = np.array([1, 0]).reshape(1,2)
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
-        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, w=)
+        w_theta = 0
+        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, w=w_theta)
 
     def updateState(self):
         """
@@ -99,7 +101,7 @@ class Estimator():
         """
 
         # wait till we have pos and theta measurements
-        if None in (self.pos_meas1, self.pos_meas2 , self.theta_meas):
+        if self.pos_meas1 is None or self.pos_meas2 is None or self.theta_meas is None:
             return
 
         if self.state is None:   # initialize state
