@@ -24,6 +24,7 @@ RATE = 10
 
 
 class Estimator():
+
     def __init__(self):
         rospy.init_node('estimator')
 
@@ -34,8 +35,8 @@ class Estimator():
         self.pos_meas1 = None
         self.pos_meas2 = None
         self.theta_meas = None
-        self.cov_meas1 = None
-        self.cov_meas2 = None
+        self.cov_pos_meas1 = None
+        self.cov_pos_meas2 = None
         self.cov_theta_meas = None
 
         # controller cmds
@@ -56,9 +57,11 @@ class Estimator():
         # publishers
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)
 
+
     def controllerCmdCallback(self, msg):
         self.vel_cmd = np.array(msg.robot_vel.data)
         self.omega_cmd = msg.robot_omega.data
+
 
     def decawaveCallback(self, msg):
         self.theta_meas = msg.theta.data
@@ -71,8 +74,9 @@ class Estimator():
         self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle),
                                     msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
 
-        self.cov_meas1 = msg.cov1.data
-        self.cov_meas2 = msg.cov2.data
+        self.cov_pos_meas1 = np.array([msg.cov1.data[0:2], msg.cov1.data[2:4]])
+        self.cov_pos_meas2 = np.array([msg.cov2.data[0:2], msg.cov2.data[2:4]])
+
 
     def initPosKF(self):
         self.pos_state = None #state: [pos_x, pos_y, vel_x, vel_y]
@@ -81,8 +85,9 @@ class Estimator():
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
         C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
-        w_pos = np.zeros(2)
+        w_pos = np.zeros(4)
         self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, w=w_pos)
+
 
     def initThetaKF(self):
         self.theta_state = None #state: [theta, theta_dot]
@@ -93,6 +98,7 @@ class Estimator():
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
         w_theta = 0
         self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, w=w_theta)
+
 
     def updateState(self):
         """
@@ -113,7 +119,7 @@ class Estimator():
         else: # run localization filter
             u_pos = self.vel_cmd
             y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
-            R_pos = np.block([[self.cov_meas1, np.zeros((2,2))], [self.cov_meas2, np.zeros((2,2))]])
+            R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [self.cov_pos_meas2, np.zeros((2,2))]])
 
             u_theta = np.array([self.omega_cmd])
             y_theta = np.array([self.theta_meas])
@@ -127,8 +133,10 @@ class Estimator():
             self.state.theta.data = self.theta_state[0]
             self.state.omega.data = self.theta_state[1]
 
+
     def publish(self):
         self.pub_state.publish(self.state)
+
 
     def run(self):
         rate = rospy.Rate(RATE) # 10 Hz
@@ -137,6 +145,8 @@ class Estimator():
             if self.state is not None:
                 self.publish()
             rate.sleep()
+
+
 
 if __name__ == '__main__':
     estimator = Estimator()

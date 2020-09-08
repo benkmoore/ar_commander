@@ -12,7 +12,6 @@ from ar_commander.msg import Decawave
 SERIALTIMEOUT = 0.3
 RATE = 10
 
-#-------------Work in progress------------------#
 
 class DecaInterface():
 
@@ -99,7 +98,7 @@ class GetPose():
     def __init__(self,port1,port2):
         rospy.init_node('decaInterface', anonymous=True)
 
-        # Decawave is a msg type
+        # Decawave msgs
         self.absolutePos = Decawave()
         self.boardY = DecaInterface(port1)
         self.boardY.connect()
@@ -169,6 +168,7 @@ class GetPose():
 
         # find pos1, pos2 & theta covariances
         self.calculateCovs()
+
 
     def run(self):
         rate = rospy.Rate(RATE) # 10 Hz
