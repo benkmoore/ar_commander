@@ -29,8 +29,9 @@ class LocalizationFilter():
         self.sigma = self.sigma_pred - npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, self.C, self.sigma_pred])
 
 
-    def step(self, u, y, R):
+    def step(self, u, y, R, new_measurement):
         self.predict(u)
-        self.update(y, R)
+        if new_measurement:
+            self.update(y, R)
 
         return self.x, self.sigma

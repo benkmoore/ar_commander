@@ -39,6 +39,9 @@ class Estimator():
         self.cov_pos_meas2 = None
         self.cov_theta_meas = None
 
+        # new measurement flag
+        self.new_meas_flag = False
+
         # controller cmds
         self.vel_cmd = None
         self.omega_cmd = None
@@ -64,15 +67,15 @@ class Estimator():
 
 
     def decawaveCallback(self, msg):
+        self.new_meas_flag = True # received new measurement
+
         self.theta_meas = msg.theta.data
         self.cov_theta_meas = msg.cov_theta.data
 
         # transform pos_meas to center corner of robot
         tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
-        self.pos_meas1 = np.array([msg.x1.data-rcfg.L*np.sin(tf_angle),
-                                    msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
-        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle),
-                                    msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
+        self.pos_meas1 = np.array([msg.x1.data-rcfg.L*np.sin(tf_angle), msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
+        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle), msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
 
         self.cov_pos_meas1 = np.array([msg.cov1.data[0:2], msg.cov1.data[2:4]])
         self.cov_pos_meas2 = np.array([msg.cov2.data[0:2], msg.cov2.data[2:4]])
@@ -125,13 +128,15 @@ class Estimator():
             y_theta = np.array([self.theta_meas])
             R_theta = self.cov_theta_meas
 
-            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos)
-            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta)
+            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos, self.new_meas_flag)
+            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta, self.new_meas_flag)
 
             self.state.pos.data = self.pos_state[0:2]
             self.state.vel.data = self.pos_state[2:4]
             self.state.theta.data = self.theta_state[0]
             self.state.omega.data = self.theta_state[1]
+
+            self.new_meas_flag = False # reset measurement flag
 
 
     def publish(self):
