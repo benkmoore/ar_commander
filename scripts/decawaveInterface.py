@@ -98,12 +98,17 @@ class GetPose():
     def __init__(self,port1,port2):
         rospy.init_node('decaInterface', anonymous=True)
 
-        #Decawave is a msg type
+        # Decawave is a msg type
         self.absolutePos = Decawave()
         self.boardY = DecaInterface(port1)
         self.boardY.connect()
         self.boardX = DecaInterface(port2)
         self.boardX.connect()
+
+        # previous measurements
+        self.pos1_prev = None
+        self.pos2_prev = None
+        self.theta_prev = None
 
         # publishers
         self.pub_decaInterface = rospy.Publisher('sensor/decawave_measurement', Decawave, queue_size=10)
@@ -117,11 +122,29 @@ class GetPose():
         theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
         if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
 
+        # pos 1 on Y axis arm
         self.absolutePos.x1.data = self.boardY.x
         self.absolutePos.y1.data = self.boardY.y
+        self.absolutePos.std1.data = 1/self.boardY.confidence
+        # pos 2 on X axis arm
         self.absolutePos.x2.data = self.boardX.x
         self.absolutePos.y2.data = self.boardX.y
+        self.absolutePos.std2.data = 1/self.boardX.confidence
+        # theta
         self.absolutePos.theta.data = theta
+        pos1 = np.array([self.absolutePos.x1.data, self.absolutePos.y1.data])
+        pos2 = np.array([self.absolutePos.x2.data, self.absolutePos.y2.data])
+        if None not in (self.pos1_prev, self.pos2_prev, self.theta_prev):
+            delta_pos1 = np.mean(pos1 - self.pos1_prev)
+            delta_pos2 = np.mean(pos2 - self.pos2_prev)
+        else:
+            delta_pos1 = delta_pos2 = delta_theta = 1
+        self.absolutePos.std_theta.data = abs(delta_theta/delta_pos2)*self.absolutePos.std2.data + abs(delta_theta/delta_pos1)*self.absolutePos.std1.data
+
+        # update
+        self.pos1_prev = pos1
+        self.pos2_prev = pos2
+        self.theta_prev = theta
 
 
     def run(self):
