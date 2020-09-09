@@ -39,8 +39,8 @@ class Estimator():
         self.cov_pos_meas2 = None
         self.cov_theta_meas = None
 
-        # new measurement flag
-        self.new_meas_flag = False
+        # new decwave measurement flag
+        self.decawave_flag = False
 
         # controller cmds
         self.vel_cmd = None
@@ -67,7 +67,7 @@ class Estimator():
 
 
     def decawaveCallback(self, msg):
-        self.new_meas_flag = True # received new measurement
+        self.decwave_flag = True # received new decwave measurement
 
         self.theta_meas = msg.theta.data
         self.cov_theta_meas = msg.cov_theta.data
@@ -77,8 +77,8 @@ class Estimator():
         self.pos_meas1 = np.array([msg.x1.data-rcfg.L*np.sin(tf_angle), msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
         self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle), msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
 
-        self.cov_pos_meas1 = np.array([msg.cov1.data[0:2], msg.cov1.data[2:4]])
-        self.cov_pos_meas2 = np.array([msg.cov2.data[0:2], msg.cov2.data[2:4]])
+        self.cov_pos_meas1 = np.reshape(msg.cov1.data, (2,2))
+        self.cov_pos_meas2 = np.reshape(msg.cov2.data, (2,2))
 
 
     def initPosKF(self):
@@ -89,7 +89,7 @@ class Estimator():
         C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
         w_pos = np.zeros(4)
-        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, w=w_pos)
+        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, w_process=w_pos)
 
 
     def initThetaKF(self):
@@ -100,7 +100,7 @@ class Estimator():
         C_theta = np.array([1, 0]).reshape(1,2)
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
         w_theta = 0
-        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, w=w_theta)
+        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, w_process=w_theta)
 
 
     def updateState(self):
@@ -121,22 +121,26 @@ class Estimator():
             self.state.omega.data = 0
         else: # run localization filter
             u_pos = self.vel_cmd
-            y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
-            R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [self.cov_pos_meas2, np.zeros((2,2))]])
-
             u_theta = np.array([self.omega_cmd])
-            y_theta = np.array([self.theta_meas])
-            R_theta = self.cov_theta_meas
 
-            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos, self.new_meas_flag)
-            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta, self.new_meas_flag)
+
+            if self.decawave_flag: # new measurement
+                y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
+                R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [self.cov_pos_meas2, np.zeros((2,2))]])
+                y_theta = np.array([self.theta_meas])
+                R_theta = self.cov_theta_meas
+            else: # no new measurement
+                y_pos = R_pos = y_theta = R_theta = None
+
+            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos)
+            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta)
 
             self.state.pos.data = self.pos_state[0:2]
             self.state.vel.data = self.pos_state[2:4]
             self.state.theta.data = self.theta_state[0]
             self.state.omega.data = self.theta_state[1]
 
-            self.new_meas_flag = False # reset measurement flag
+            self.decawave_flag = False # reset decawave measurement flag
 
 
     def publish(self):
