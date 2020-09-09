@@ -67,7 +67,7 @@ class Estimator():
 
 
     def decawaveCallback(self, msg):
-        self.decwave_flag = True # received new decwave measurement
+        self.decawave_flag = True # received new decwave measurement
 
         self.theta_meas = msg.theta.data
         self.cov_theta_meas = msg.cov_theta.data
@@ -122,7 +122,6 @@ class Estimator():
         else: # run localization filter
             u_pos = self.vel_cmd
             u_theta = np.array([self.omega_cmd])
-
 
             if self.decawave_flag: # new measurement
                 y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))

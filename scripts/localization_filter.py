@@ -34,7 +34,7 @@ class LocalizationFilter():
 
     def update(self, y, R):
         y_delta = y - np.matmul(self.C, self.x_pred)
-        innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
+        innovation_cov = npl.pinv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
 
         self.x = self.x_pred + npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, y_delta])
         self.sigma = self.sigma_pred - npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, self.C, self.sigma_pred])
