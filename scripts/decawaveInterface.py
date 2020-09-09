@@ -99,75 +99,79 @@ class GetPose():
         rospy.init_node('decaInterface', anonymous=True)
 
         # Decawave msgs
-        self.absolutePos = Decawave()
+        self.measurement_msg = Decawave()
         self.boardY = DecaInterface(port1)
         self.boardY.connect()
         self.boardX = DecaInterface(port2)
         self.boardX.connect()
+
+        # measurements
+        self.pos1 = None
+        self.pos2 = None
+        self.theta = None
 
         # previous measurements
         self.pos1_prev = None
         self.pos2_prev = None
         self.theta_prev = None
 
-        # sample covariance deque
-        self.pos1_q = collections.deque([])
-        self.pos2_q = collections.deque([])
-        self.N = 10 # number of samples in covariance
+        # covariance of measurements
+        self.cov_pos1 = None
+        self.cov_pos2 = None
+        self.cov_theta = None
 
         # publishers
         self.pub_decaInterface = rospy.Publisher('sensor/decawave_measurement', Decawave, queue_size=10)
 
 
     def publish(self):
-        self.pub_decaInterface.publish(self.absolutePos)
+        self.pub_decaInterface.publish(self.measurement_msg)
 
 
     def calculateCovs(self):
-        pos1 = np.array([self.absolutePos.x1.data, self.absolutePos.y1.data])
-        pos2 = np.array([self.absolutePos.x2.data, self.absolutePos.y2.data])
-        if len(self.pos1_q) >= self.N or len(self.pos2_q) >= self.N:
-            _ = self.pos1_q.popleft()
-            _ = self.pos2_q.popleft()
-        self.pos1_q.append(pos1)
-        self.pos2_q.append(pos2)
-
-        self.absolutePos.cov1.data = np.cov(np.asarray(self.pos1_q))
-        self.absolutePos.cov2.data = np.cov(np.asarray(self.pos2_q))
+        self.cov_pos1 = ((1/self.boardY.confidence)**2)*np.eye(2)
+        self.cov_pos2 = ((1/self.boardX.confidence)**2)*np.eye(2)
 
         if self.pos1_prev is None or self.pos2_prev is None or self.theta_prev is None:
             delta_pos1 = delta_pos2 = np.ones(2)
             delta_theta = 1
         else:
-            delta_pos1 = pos1 - self.pos1_prev
-            delta_pos2 = pos2 - self.pos2_prev
-            delta_theta = theta - self.theta_prev
-
+            delta_pos1 = self.pos1 - self.pos1_prev
+            delta_pos2 = self.pos2 - self.pos2_prev
+            delta_theta = self.theta - self.theta_prev
         dth_dp1 = abs(delta_theta/delta_pos1)
         dth_dp2 = abs(delta_theta/delta_pos2)
-        self.absolutePos.cov_theta.data = npl.multi_dot((dth_dp1, self.absolutePos.cov1.data, dth_dp1)) \
-                                            + npl.multi_dot((dth_dp2, self.absolutePos.cov2.data, dth_dp2))
+
+        self.cov_theta = npl.multi_dot((dth_dp1, self.cov_pos1, dth_dp1)) + npl.multi_dot((dth_dp2, self.cov_pos2, dth_dp2))
+
+
+    def updateMeasurementMsgData(self):
+        self.measurement_msg.x1.data = self.boardY.x # pos 1 on Y axis arm
+        self.measurement_msg.y1.data = self.boardY.y
+        self.measurement_msg.x2.data = self.boardX.x # pos 2 on X axis arm
+        self.measurement_msg.y2.data = self.boardX.y
+        self.measurement_msg.theta.data = self.theta
+        # covariances
+        self.measurement_msg.cov1.data = cov_pos1
+        self.measurement_msg.cov2.data = cov_pos2
+        self.measurement_msg.cov_theta.data = cov_theta
 
         # update previous measurements
-        self.pos1_prev = pos1
-        self.pos2_prev = pos2
-        self.theta_prev = theta
+        self.pos1_prev = self.pos1
+        self.pos2_prev = self.pos2
+        self.theta_prev = self.theta
 
 
     def obtainMeasurements(self):
-        # pos 1 on Y axis arm
-        self.absolutePos.x1.data = self.boardY.x
-        self.absolutePos.y1.data = self.boardY.y
-        # pos 2 on X axis arm
-        self.absolutePos.x2.data = self.boardX.x
-        self.absolutePos.y2.data = self.boardX.y
-        # theta
-        self.absolutePos.theta.data = theta
-        theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
-        if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
+        self.theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
+        if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
+        self.pos1 = np.array([self.boardY.x, self.boardY.y])
+        self.pos2 = np.array([self.boardX.x, self.boardX.y])
 
         # find pos1, pos2 & theta covariances
         self.calculateCovs()
+        # add new data to output msg
+        self.updateMeasurementMsgData()
 
 
     def run(self):
