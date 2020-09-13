@@ -74,12 +74,12 @@ class Estimator():
 
         # transform pos_meas to center corner of robot
         tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
-        self.pos_meas1 = np.array([msg.x1.data-rcfg.L*np.sin(tf_angle), msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
-        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle), msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
-
+        self.pos_meas1 = np.array([msg.x1.data+rcfg.L*np.sin(tf_angle),
+                                    msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
+        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle),
+                                    msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
         self.cov_pos_meas1 = np.reshape(msg.cov1.data, (2,2))
         self.cov_pos_meas2 = np.reshape(msg.cov2.data, (2,2))
-
 
     def initPosKF(self):
         self.pos_state = None #state: [pos_x, pos_y, vel_x, vel_y]
