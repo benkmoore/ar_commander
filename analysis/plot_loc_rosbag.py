@@ -1,6 +1,19 @@
+"""
+Plot localization data from rosbags from a specific folder. Script processes
+each rosbag and plots the data, saving the plot to the same folder as a png.
+
+example usage:
+
+python plot_loc_rosbag --dir ~/folder_of_rosbags
+
+"""
+
+
+
 import rosbag
 import rospy
 import numpy as np
+import numpy.linalg as npl
 import argparse, os
 import matplotlib.pyplot as plt
 
@@ -18,21 +31,28 @@ processed_ext = '_OUT.bag'
 m_col1 = 'royalblue'
 m_col2 = 'red'
 est_col = 'lime'
+display = '-'
 
 # decawave sensor arm lengths v1
 L1 = 0.41
 L2 = 0.425
 
+theta = 0.0
 
 for root, dirs, files in os.walk(args.dir):
 	print("Processing ... ")
 	for file in files:
 		est_x = []
 		est_y = []
+		est_vx = []
+		est_vy = []
 		x1 = []
 		x2 = []
 		y1 = []
 		y2 = []
+		cov_det_p1 = []
+		cov_det_p2 = []
+		cov_theta = []
 		meas_theta = []
 		est_theta = []
 		T = []
@@ -55,6 +75,8 @@ for root, dirs, files in os.walk(args.dir):
 						#outbag.write(topic, msg, t)
 						est_x.append(msg.pos.data[0])
 						est_y.append(msg.pos.data[1])
+						est_vx.append(msg.vel.data[0])
+						est_vy.append(msg.vel.data[1])
 						est_theta.append(msg.theta.data)
 
 					if topic == '/sensor/decawave_measurement':
@@ -70,35 +92,59 @@ for root, dirs, files in os.walk(args.dir):
 						x2.append(msg.x2.data)
 						y2.append(msg.y2.data)
 						meas_theta.append(msg.theta.data)
+
+						cov_det_p1.append(npl.det(np.asarray(msg.cov1.data).reshape(2,2)))
+						cov_det_p2.append(npl.det(np.asarray(msg.cov2.data).reshape(2,2)))
+						cov_theta.append(msg.cov_theta.data)
+						print(msg.cov_theta.data)
 						#outbag.write(topic, msg, t)
 
-				fig, ax = plt.subplots(nrows=3, ncols=1)
-				fig.set_figheight(15)
-				fig.set_figwidth(20)
-				titles = ['x','y','theta']
+				fig, ax = plt.subplots(nrows=6, ncols=1)
+				fig.set_figheight(50)
+				fig.set_figwidth(30)
+				titles = ['x','y','Velocity','theta','Measured covariance determinants P1, P2', 'Covariance theta']
 				for i, row in enumerate(ax):
 					if i == 0:
-						l1, = row.plot(T_est, est_x, color=est_col)
-						l2, = row.plot(T_decawave, x1, color=m_col1)
-						l3, = row.plot(T_decawave, x2, color=m_col2)
+						l1, = row.plot(T_est, est_x, display, color=est_col)
+						l2, = row.plot(T_decawave, x1, display, color=m_col1)
+						l3, = row.plot(T_decawave, x2, display,color=m_col2)
 						row.legend((l1,l2,l3), ('est x', 'meas x1', 'meas x2'), loc='upper right', shadow=True)
 						row.set_xlabel('Time (s)')
 						row.set_ylabel('x (m)')
 					elif i == 1:
-						l1, = row.plot(T_est, est_y, color=est_col)
-						l2, = row.plot(T_decawave, y1, color=m_col1)
-						l3, = row.plot(T_decawave, y2, color=m_col2)
+						l1, = row.plot(T_est, est_y, display, color=est_col)
+						l2, = row.plot(T_decawave, y1, display, color=m_col1)
+						l3, = row.plot(T_decawave, y2, display, color=m_col2)
 						row.legend((l1,l2,l3), ('est y', 'meas y1', 'meas y2'), loc='upper right', shadow=True)
 						row.set_xlabel('Time (s)')
 						row.set_ylabel('y (m)')
 					elif i == 2:
-						l1, = row.plot(T_est, est_theta, color=est_col)
-						l2, = row.plot(T_decawave, meas_theta, color=m_col1)
+						l1, = row.plot(T_est, est_vx, display, color=est_col)
+						l2, = row.plot(T_est, est_vy, display, color=m_col1)
+						row.legend((l1,l2), ('est Vx', 'est Vy'), loc='upper right', shadow=True)
+						row.set_xlabel('Time (s)')
+						row.set_ylabel('Velocity (m/s)')
+					elif i == 3:
+						l1, = row.plot(T_est, est_theta, display, color=est_col)
+						l2, = row.plot(T_decawave, meas_theta, display, color=m_col1)
 						row.legend((l1,l2), ('est theta', 'meas theta'), loc='upper right', shadow=True)
 						row.set_xlabel('Time (s)')
 						row.set_ylabel('Theta (rads)')
+					elif i == 4:
+						l1, = row.plot(T_decawave, cov_det_p1 , display, color=m_col1)
+						l2, = row.plot(T_decawave, cov_det_p1, display, color=m_col2)
+						row.legend((l1,l2), ('cov det p1', 'cov det p2'), loc='upper right', shadow=True)
+						row.set_xlabel('Time (s)')
+						row.set_ylabel('Magnitude')
+					elif i == 5:
+						l1, = row.plot(T_decawave, cov_theta , display, color=m_col1)
+						row.legend( 'cov theta', loc='upper right', shadow=True)
+						row.set_xlabel('Time (s)')
+						row.set_ylabel('Magnitude')
 					row.grid()
+
 					row.set_title(titles[i])
+					ax[i].yaxis.set_major_locator(plt.MaxNLocator(30))
 
 				plt.savefig(outfile[:-4]+'.png')
 
