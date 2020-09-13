@@ -2,9 +2,14 @@
 
 import numpy as np
 import rospy
+from os import sys, path
+
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
+from stateMachine.stateMachine import Mode
 
 from ar_commander.msg import Trajectory
-from stateMachine import Mode
 from std_msgs.msg import Int8
 
 class Navigator():

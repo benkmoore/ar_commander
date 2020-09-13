@@ -3,9 +3,13 @@
 import numpy as np
 import numpy.linalg as npl
 import rospy
+from os import sys, path
 
-from navigator_lib.astar import AStar, DetOccupancyGrid2D
-from stateMachine import Mode
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
+from astar import AStar, DetOccupancyGrid2D
+from stateMachine.stateMachine import Mode
 
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8

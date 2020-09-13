@@ -4,14 +4,17 @@ import sys
 import rospy
 import numpy as np
 import numpy.linalg as npl
-from stateMachine import Mode
+from os import sys, path
+
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+
+from stateMachine.stateMachine import Mode
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
 
 env = rospy.get_param("ENV")
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
-
 if env == "sim":
     import configs.sim_params as params
 elif env == "hardware":
