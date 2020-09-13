@@ -9,7 +9,6 @@ python plot_loc_rosbag --dir ~/folder_of_rosbags
 """
 
 
-
 import rosbag
 import rospy
 import numpy as np
