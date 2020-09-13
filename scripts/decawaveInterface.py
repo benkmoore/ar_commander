@@ -11,6 +11,7 @@ from ar_commander.msg import Decawave
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
 RATE = 10
+EPSILON = np.finfo(np.float64).eps
 
 
 class DecaInterface():
@@ -139,10 +140,13 @@ class GetPose():
             delta_pos1 = self.pos1 - self.pos1_prev
             delta_pos2 = self.pos2 - self.pos2_prev
             delta_theta = self.theta - self.theta_prev
-        dth_dp1 = abs(delta_theta/delta_pos1)
-        dth_dp2 = abs(delta_theta/delta_pos2)
 
-        self.cov_theta = npl.multi_dot((dth_dp1, self.cov_pos1, dth_dp1)) + npl.multi_dot((dth_dp2, self.cov_pos2, dth_dp2))
+        if abs(delta_pos1) < EPSILON or abs(delta_pos2) < EPSILON: # prevent division by zero
+            self.cov_theta = (self.cov_pos1 + self.cov_pos2)/2
+        else:
+            dth_dp1 = abs(delta_theta/delta_pos1)
+            dth_dp2 = abs(delta_theta/delta_pos2)
+            self.cov_theta = npl.multi_dot((dth_dp1, self.cov_pos1, dth_dp1)) + npl.multi_dot((dth_dp2, self.cov_pos2, dth_dp2))
 
 
     def updateMeasurementMsgData(self):
@@ -152,9 +156,9 @@ class GetPose():
         self.measurement_msg.y2.data = self.boardX.y
         self.measurement_msg.theta.data = self.theta
         # covariances
-        self.measurement_msg.cov1.data = cov_pos1
-        self.measurement_msg.cov2.data = cov_pos2
-        self.measurement_msg.cov_theta.data = cov_theta
+        self.measurement_msg.cov1.data = self.cov_pos1
+        self.measurement_msg.cov2.data = self.cov_pos2
+        self.measurement_msg.cov_theta.data = self.cov_theta
 
         # update previous measurements
         self.pos1_prev = self.pos1

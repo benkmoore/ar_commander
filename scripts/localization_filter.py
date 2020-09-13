@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.linalg as npl
+import numpy.random as npr
 
 
 class LocalizationFilter():
@@ -28,7 +29,7 @@ class LocalizationFilter():
 
 
     def predict(self, u):
-        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u) + self.w_process
+        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u) + npr.normal(0.0, self.w_process)
         self.sigma_pred = npl.multi_dot([self.A, self.sigma, self.A.T]) + self.Q
 
 

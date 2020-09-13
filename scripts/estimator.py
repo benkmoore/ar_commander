@@ -88,7 +88,7 @@ class Estimator():
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
         C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
-        w_pos = np.zeros(4)
+        w_pos = params.positionFilterParams['w']
         self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos, w_process=w_pos)
 
 
@@ -99,7 +99,7 @@ class Estimator():
         B_theta = np.array([[self.dt],[1]])
         C_theta = np.array([1, 0]).reshape(1,2)
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
-        w_theta = 0
+        w_theta = params.thetaFilterParams['w']
         self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, w_process=w_theta)
 
 
@@ -125,7 +125,7 @@ class Estimator():
 
             if self.decawave_flag: # new measurement
                 y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
-                R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [self.cov_pos_meas2, np.zeros((2,2))]])
+                R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [np.zeros((2,2)), self.cov_pos_meas2]])
                 y_theta = np.array([self.theta_meas])
                 R_theta = self.cov_theta_meas
             else: # no new measurement
