@@ -6,7 +6,6 @@ import rospy
 import sys
 
 from localization_filter import LocalizationFilter
-
 from ar_commander.msg import State, ControllerCmd, Decawave
 
 env = rospy.get_param("ENV")

@@ -6,7 +6,6 @@ Handles the FSM and high level mission logic
 """
 
 from enum import Enum
-from os import sys, path
 import numpy as np
 import numpy.linalg as npl
 import rospy
