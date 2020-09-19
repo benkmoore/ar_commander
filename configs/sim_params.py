@@ -6,6 +6,8 @@ max_vel = 3                                # m/s
 
 wp_threshold = 0.25                        # distance threshold at which we transition to next waypoint (m)
 
+theta_threshold = np.pi/8				   # robot theta threshold at which we transition to next waypoint (rad)
+
 thetaControllerGains = {'kp':3, 'ki':0.03, 'kd':5e-2}
 
 pointControllerGains = {'kp':0.5, 'kd':0}

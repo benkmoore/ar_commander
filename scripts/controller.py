@@ -137,7 +137,7 @@ class ControlNode():
             wp = self.trajectory[self.traj_idx, :]
 
             # advance waypoints
-            if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and self.traj_idx < self.trajectory.shape[0]-1:
+            if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1:
                 self.traj_idx += 1
                 wp = self.trajectory[self.traj_idx, :]
 
