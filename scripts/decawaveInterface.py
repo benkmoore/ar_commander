@@ -65,19 +65,21 @@ class DecaInterface():
         data = re.sub("[\r\n>]","",data)
 
         #3 is still the length even when we remove all the characters??
-        if len(data) > 3:
+        if len(data) > 4:
             data = np.array(data.split(','))
             data = data[1:5]
             data = data.astype(np.float)
-            self.x = data[0]
-            self.y = data[1]
-            self.confidence = data[3]
-            self.readFails = 0
-            self.dataRead = 1
+            if len(data) > 3:
+                self.x = data[0]
+                self.y = data[1]
+                self.confidence = data[3]
+                self.readFails = 0
+                self.dataRead = 1
+                self.ser.reset_input_buffer()
         else:
             self.readFails += 1
             self.dataRead = 0
-
+            rospy.logerr("on port %s, readSerial failed to read serial data %s times.", self.ser.port, self.readFails)
             #if we dont read any pose data for this amount of tries then redo the serial connection
         if self.readFails > 30:
             #check connection between boards + orientation of tag.
