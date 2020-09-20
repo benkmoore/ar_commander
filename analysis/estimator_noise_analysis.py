@@ -91,7 +91,7 @@ import scipy
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
 
-print(scipy.stats.shapiro(x1))
+
 
 
 sc=StandardScaler()
@@ -99,6 +99,8 @@ dd = x1.reshape (-1,1)
 sc.fit(dd)
 data =sc.transform(dd)
 data = data.flatten()
+
+print(scipy.stats.normaltest(data))
 
 print(pd.DataFrame(x1,columns=['Data']).describe())
 
