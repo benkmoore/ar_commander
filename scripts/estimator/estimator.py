@@ -89,7 +89,6 @@ class Estimator:
             [[np.eye(2), np.zeros((2, 2))], [np.zeros((2, 2)), np.zeros((2, 2))]]
         )
         B_pos = np.block([[self.dt * np.eye(2)], [np.eye(2)]])
-        C_pos = np.block([[np.eye(2), np.zeros((2, 2))], [np.eye(2), np.zeros((2, 2))]])
         Q_pos = np.block(
             [
                 [params.positionFilterParams["Q"], np.zeros((2, 2))],
@@ -107,7 +106,6 @@ class Estimator:
             sigma0=10 * np.eye(4),
             A=A_pos,
             B=B_pos,
-            C=C_pos,
             Q=Q_pos,
             R=R_pos,
         )
@@ -126,10 +124,48 @@ class Estimator:
             sigma0=10 * np.eye(2),
             A=A_theta,
             B=B_theta,
-            C=C_theta,
             Q=Q_theta,
             R=R_theta,
         )
+
+    def getPosFilterInputs(self):
+        # get pos filter step inputs
+        u_pos = self.vel_cmd
+        if (
+            self.loc_meas1_flag and self.loc_meas2_flag
+        ):  # new measurements from both sensors
+            y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
+            C_pos = np.block(
+                [[np.eye(2), np.zeros((2, 2))], [np.eye(2), np.zeros((2, 2))]]
+            )
+        elif (
+            self.loc_meas1_flag or self.loc_meas2_flag
+        ):  # one new measurement from X or Y arm of robot
+            y_pos = (
+                self.pos_meas1 * self.loc_meas1_flag
+                + self.pos_meas2 * self.loc_meas2_flag
+            )
+            C_pos = np.block(
+                [
+                    self.loc_meas1_flag * np.eye(2),
+                    self.loc_meas2_flag * np.eye(2),
+                ]
+            )
+        else:  # no new measurements
+            y_pos = C_pos = None
+
+        return u_pos, y_pos, C_pos
+
+    def getThetaFilterInputs(self):
+        # get theta filter inputs
+        u_theta = np.array([self.omega_cmd])
+        if self.loc_meas1_flag and self.loc_meas2_flag:
+            y_theta = np.array([self.theta_meas])
+            C_theta = np.array([1, 0])
+        else:
+            y_theta = C_theta = None
+
+        return u_theta, y_theta, C_theta
 
     def updateState(self):
         """
@@ -148,41 +184,15 @@ class Estimator:
             self.state.vel.data = np.zeros(2)
             self.state.omega.data = 0
         else:  # run localization filter
-            u_pos = self.vel_cmd
-            if (
-                self.loc_meas1_flag and self.loc_meas2_flag
-            ):  # new measurements from both sensors
-                y_pos = np.concatenate((self.pos_meas1, self.pos_meas2))
-                C_pos = np.block(
-                    [[np.eye(2), np.zeros((2, 2))], [np.eye(2), np.zeros((2, 2))]]
-                )
-            elif (
-                self.loc_meas1_flag or self.loc_meas2_flag
-            ):  # one new measurement from X or Y arm of robot
-                y_pos = (
-                    self.pos_meas1 * self.loc_meas1_flag
-                    + self.pos_meas2 * self.loc_meas2_flag
-                )
-                C_pos = np.block(
-                    [
-                        self.loc_meas1_flag * np.eye(2),
-                        self.loc_meas2_flag * np.eye(2),
-                    ]
-                )
-            else:  # no new measurements
-                y_pos = None
-
-            u_theta = np.array([self.omega_cmd])
-            if self.loc_meas1_flag and self.loc_meas2_flag:
-                y_theta = np.array([self.theta_meas])
-                C_theta = np.array([1, 0])
-            else:
-                y_theta = None
+            u_pos, y_pos, C_pos = self.getPosFilterInputs()
+            u_theta, y_theta, C_theta = self.getThetaFilterInputs()
 
             self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, C_pos)
             self.theta_state, self.theta_cov = self.theta_filter.step(
                 u_theta, y_theta, C_theta.reshape(1, 2)
             )
+
+            self.loc_meas1_flag = self.loc_meas2_flag = False  # reset measurement flags
 
             self.state.pos.data = self.pos_state[0:2]
             self.state.vel.data = self.pos_state[2:4]

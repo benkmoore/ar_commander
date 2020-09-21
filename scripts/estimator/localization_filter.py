@@ -19,15 +19,13 @@ class LocalizationFilter:
 
     def update(self, y, C):
         y_delta = y - np.matmul(C, self.x_pred)
-        innovation_cov = npl.inv(
-            npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + self.R
-        )
+        innovation_cov = npl.inv(npl.multi_dot([C, self.sigma_pred, C.T]) + self.R)
 
         self.x = self.x_pred + npl.multi_dot(
-            [self.sigma_pred, self.C.T, innovation_cov, y_delta]
+            [self.sigma_pred, C.T, innovation_cov, y_delta]
         )
         self.sigma = self.sigma_pred - npl.multi_dot(
-            [self.sigma_pred, self.C.T, innovation_cov, self.C, self.sigma_pred]
+            [self.sigma_pred, C.T, innovation_cov, C, self.sigma_pred]
         )
 
     def step(self, u, y, C):
