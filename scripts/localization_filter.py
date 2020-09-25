@@ -8,10 +8,11 @@ class LocalizationFilter():
     localization filter. Uses statespace model to predict the next state of the robot via the
     dynamics, x(k+1) = Ax(k)+Bu(k) + w_process, with input, u and process noise, w_process.
     Updates the state using measurements y and covariance R via the measurement model
-    y(k) = Cx(k) + w_meas, with measurement noise, w_meas.
+    y(k) = Cx(k). If state is an angle, indicated by bool angle variable, enforce angle wrap 
+    to [-pi, pi].
     """
 
-    def __init__(self, x0, sigma0, A, B, C, Q):
+    def __init__(self, x0, sigma0, A, B, C, Q, angle):
         # initial state and covariance
         self.x = x0
         self.sigma = sigma0
@@ -25,6 +26,16 @@ class LocalizationFilter():
         self.C = C
         # uncertainty, Q on predict step
         self.Q = Q
+        # is state angle
+        self.angle = angle
+ 
+
+    # wrap angle to [-pi, pi] to avoid delta > pi in filter state
+    def wrap_angle(self, angle):
+        if abs(angle) > np.pi:
+            angle = angle - np.sign(angle) * 2 * np.pi
+
+        return angle
 
 
     def predict(self, u):
@@ -34,6 +45,8 @@ class LocalizationFilter():
 
     def update(self, y, R):
         y_delta = y - np.matmul(self.C, self.x_pred)
+        if self.angle:  # wrap delta angle along axis
+            y_delta = np.apply_along_axis(self.wrap_angle, 0, y_delta)
         innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
 
         self.x = self.x_pred + npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, y_delta])
