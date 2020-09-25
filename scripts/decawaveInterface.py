@@ -139,7 +139,7 @@ class GetPose():
 
     """
     calculate measurement covariances function
-    Uses decawave hardware param, standard deviation on position measurment and the outputted confidence in the
+    Uses decawave hardware param, standard deviation on position measurement and the outputted confidence in the
     measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from 
     each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
     derived from the heading calculation, the formula relates robot heading to sensor measurements.
