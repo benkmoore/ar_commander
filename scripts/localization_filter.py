@@ -11,7 +11,7 @@ class LocalizationFilter():
     y(k) = Cx(k) + w_meas, with measurement noise, w_meas.
     """
 
-    def __init__(self, x0, sigma0, A, B, C, Q, w_process):
+    def __init__(self, x0, sigma0, A, B, C, Q):
         # initial state and covariance
         self.x = x0
         self.sigma = sigma0
@@ -23,19 +23,18 @@ class LocalizationFilter():
         self.B = B
         # measurement model
         self.C = C
-        # uncertainty, Q and noise, w_process on predict step
+        # uncertainty, Q on predict step
         self.Q = Q
-        self.w_process = w_process
 
 
     def predict(self, u):
-        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u) + npr.normal(0.0, self.w_process)
+        self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u)
         self.sigma_pred = npl.multi_dot([self.A, self.sigma, self.A.T]) + self.Q
 
 
     def update(self, y, R):
         y_delta = y - np.matmul(self.C, self.x_pred)
-        innovation_cov = npl.pinv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
+        innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
 
         self.x = self.x_pred + npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, y_delta])
         self.sigma = self.sigma_pred - npl.multi_dot([self.sigma_pred, self.C.T, innovation_cov, self.C, self.sigma_pred])

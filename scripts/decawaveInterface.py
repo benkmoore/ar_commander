@@ -8,6 +8,10 @@ import numpy as np
 import collections
 from ar_commander.msg import Decawave
 
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+
+import configs.hardware_params as params
+
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
 RATE = 10
@@ -108,6 +112,9 @@ class GetPose():
         self.boardX = DecaInterface(port2)
         self.boardX.connect()
 
+        # Decawave constants
+        self.pos_meas_std = params.pos_measurement_std # pos measurement standard deviation(m)
+
         # measurements
         self.pos1 = None
         self.pos2 = None
@@ -132,8 +139,8 @@ class GetPose():
 
 
     def calculateCovs(self):
-        self.cov_pos1 = ((1/self.boardY.confidence)**2)*np.eye(2)
-        self.cov_pos2 = ((1/self.boardX.confidence)**2)*np.eye(2)
+        self.cov_pos1 = ((self.pos_meas_std**2)/self.boardY.confidence)*np.eye(2)
+        self.cov_pos2 = ((self.pos_meas_std**2)/self.boardX.confidence)*np.eye(2)
 
         if self.pos1_prev is None or self.pos2_prev is None or self.theta_prev is None:
             delta_pos1 = delta_pos2 = np.ones(2)
