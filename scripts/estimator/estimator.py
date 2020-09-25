@@ -65,20 +65,21 @@ class Estimator():
         tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
         self.pos_meas1 = np.array([msg.x1.data+rcfg.L*np.sin(tf_angle),
                                     msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
-        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle), msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
+        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle), 
+                                    msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
 
         # update measurement flags
         self.loc_meas1_flag = msg.new_meas1.data
         self.loc_meas2_flag = msg.new_meas2.data
 
     def initPosKF(self):
-        self.pos_state = None  #state: [pos_x, pos_y, vel_x, vel_y]
-        self.pos_cov = None  #covariance
-        A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2, 2))]])
+        self.pos_state = None #state: [pos_x, pos_y, vel_x, vel_y]
+        self.pos_cov = None #covariance
+        A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2,2))]])
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
-        Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2, 2))], [np.zeros((2, 2)), params.positionFilterParams['Q_d']]])
-        R_pos = np.block([[params.positionFilterParams['R'], np.zeros((2, 2))], [np.zeros((2, 2)), params.positionFilterParams['R_d']]])
-        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10 * np.eye(4), A=A_pos, B=B_pos, Q=Q_pos, R=R_pos)
+        Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
+        R_pos = np.block([[params.positionFilterParams['R'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['R_d']]])
+        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, Q=Q_pos, R=R_pos)
 
     def initThetaKF(self):
         self.theta_state = None #state: [theta, theta_dot]
