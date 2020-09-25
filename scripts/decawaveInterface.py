@@ -15,7 +15,6 @@ import configs.hardware_params as params
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
 RATE = 10
-EPSILON = np.finfo(np.float64).eps
 
 
 class DecaInterface():
@@ -138,24 +137,31 @@ class GetPose():
         self.pub_decaInterface.publish(self.measurement_msg)
 
 
+    """
+    calculate measurement covariances function
+    Uses decawave hardware param, standard deviation on position measurment and the outputted confidence in the
+    measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from 
+    each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
+    derived from the heading calculation, the formula relates robot heading to sensor measurements.
+    """
     def calculateCovs(self):
         self.cov_pos1 = ((self.pos_meas_std**2)/self.boardY.confidence)*np.eye(2)
         self.cov_pos2 = ((self.pos_meas_std**2)/self.boardX.confidence)*np.eye(2)
 
-        if self.pos1_prev is None or self.pos2_prev is None or self.theta_prev is None:
-            delta_pos1 = delta_pos2 = np.ones(2)
-            delta_theta = 1
-        else:
-            delta_pos1 = self.pos1 - self.pos1_prev
-            delta_pos2 = self.pos2 - self.pos2_prev
-            delta_theta = self.theta - self.theta_prev
+        dx = self.pos2[0] - self.pos1[0]
+        dy = self.pos2[1] - self.pos1[1]
+        div = (dy**2 + dx**2)
 
-        if abs(delta_pos1) < EPSILON or abs(delta_pos2) < EPSILON: # prevent division by zero
-            self.cov_theta = (self.cov_pos1 + self.cov_pos2)/2
-        else:
-            dth_dp1 = abs(delta_theta/delta_pos1)
-            dth_dp2 = abs(delta_theta/delta_pos2)
-            self.cov_theta = npl.multi_dot((dth_dp1, self.cov_pos1, dth_dp1)) + npl.multi_dot((dth_dp2, self.cov_pos2, dth_dp2))
+        dth_dx1 =  dy / div
+        dth_dy1 = -dx / div
+        dth_dx2 = -dy / div
+        dth_dy2 =  dx / div
+
+        dth_dp1 = np.abs(np.array([dth_dx1, dth_dy1]))
+        dth_dp2 = np.abs(np.array([dth_dx2, dth_dy2]))
+
+        std_theta = np.matmul(dth_dp1, np.sqrt(self.cov_pos1)) + np.matmul(dth_dp2, np.sqrt(self.cov_pos2))
+        self.cov_theta = std_theta ** 2
 
 
     def updateMeasurementMsgData(self):
@@ -176,7 +182,7 @@ class GetPose():
 
 
     def obtainMeasurements(self):
-        self.theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
+        self.theta = np.arctan2(self.boardX.y-self.boardY.y, self.boardX.x-self.boardY.x) + np.pi/4
         if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
         self.pos1 = np.array([self.boardY.x, self.boardY.y])
         self.pos2 = np.array([self.boardX.x, self.boardX.y])
