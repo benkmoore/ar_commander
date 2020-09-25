@@ -11,7 +11,7 @@ from ar_commander.msg import Decawave
 SERIALTIMEOUT = 0.3
 RATE = 10
 
-# -------------Work in progress------------------#
+#-------------Work in progress------------------#
 
 
 class DecaInterface():
@@ -40,7 +40,7 @@ class DecaInterface():
         if not self.ser.is_open:
             self.ser.open()
         #this command gets us into shell mode where we can talk to the board
-        self.ser.write(b"\r\r")
+        self.ser.write(b'\r\r')
         #this sleep is important until we find a better way
         time.sleep(1)
         rospy.loginfo("Decawave serial connecting")
@@ -61,7 +61,7 @@ class DecaInterface():
         data = re.sub("[a-zA-Z]", "", data)
         data = re.sub("[\r\n>]","",data)
 
-        # 3 is still the length even when we remove all the characters??
+        #3 is still the length even when we remove all the characters??
         if len(data) > 3:
             data = np.array(data.split(','))
             data = data[1:5]
@@ -78,10 +78,7 @@ class DecaInterface():
             #if we dont read any pose data for this amount of tries then redo the serial connection
         if self.readFails > 30:
             #check connection between boards + orientation of tag.
-            rospy.logerr(
-                "readSerial failed to read serial data %s times. Check: 1. Anchors xy pos is accurate, 2. Enough anchors in range, 3. Orientation of tag.",
-                self.readFails,
-            )
+            rospy.logerr("readSerial failed to read serial data %s times. Check: 1. Anchors xy pos is accurate, 2. Enough anchors in range, 3. Orientation of tag.", self.readFails)
             self.readFails = 0
             self.dataRead = False
             self.connect()
@@ -94,9 +91,9 @@ class DecaInterface():
 
 class GetPose():
     def __init__(self,port1,port2):
-        rospy.init_node("decaInterface", anonymous=True)
+        rospy.init_node('decaInterface', anonymous=True)
 
-        # Decawave is a msg type
+        #Decawave is a msg type
         self.absolutePos = Decawave()
         self.boardY = DecaInterface(port1)
         self.boardY.connect()
@@ -110,7 +107,7 @@ class GetPose():
         self.pub_decaInterface.publish(self.absolutePos)
 
     def obtainMeasurements(self):
-        theta = (np.arctan2(-(self.boardY.y - self.boardX.y) , -(self.boardY.x - self.boardX.x)) + np.pi/4)
+        theta = np.arctan2(-(self.boardY.y - self.boardX.y) , -(self.boardY.x - self.boardX.x)) + np.pi/4
         if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
 
         self.absolutePos.x1.data = self.boardY.x
