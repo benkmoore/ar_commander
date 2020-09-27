@@ -27,6 +27,8 @@ class ControlLoops():
     def __init__(self):
         self.theta_error_sum = 0
 
+        self.
+
     def resetController(self):
         self.theta_error_sum = 0
 
