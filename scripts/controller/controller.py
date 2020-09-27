@@ -7,6 +7,7 @@ import numpy.linalg as npl
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
+from trajectory_controller import TrajectoryController
 from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
@@ -27,7 +28,9 @@ class ControlLoops():
     def __init__(self):
         self.theta_error_sum = 0
 
-        self.
+        num = np.array([ 0.2, -0.3722704 ,  0.17246762])
+        den = np.array([ 1., -1.97219114,  0.97238837])
+        self.traj_ctrl = TrajectoryController(num, den)
 
     def resetController(self):
         self.theta_error_sum = 0
@@ -52,22 +55,10 @@ class ControlLoops():
         v_cmd = kp*p_err + kd*vel
         return v_cmd
 
-    def trajectoryController(self, pos, vel, theta, wp, wp_prev):
-        # gains
-        kp_pos = params.trajectoryControllerGains['kp_pos']
-        kd_pos = params.trajectoryControllerGains['kd_pos']
-        kp_th = params.trajectoryControllerGains['kp_th']
-        k_ol = params.trajectoryControllerGains['k_ol']
-
-        pos_des = wp[0:2]
-        v_ol = (wp-wp_prev)[0:2]
-
-        v_cmd = k_ol*v_ol + kp_pos*(pos_des-pos)
-        theta_des = wp[2]
-        theta_err = theta_des - theta
-        idx = abs(theta_err) > np.pi
-        theta_err -= 2*np.pi*np.sign(theta_err)*idx
-        omega_cmd = kp_th*theta_err
+    def trajectoryController(self, pos, theta):
+        u = self.traj_ctrl.getControlCmds(np.hstack((pos, theta)))
+        v_cmd = u[0:2]
+        omega_cmd = u[2]
 
         # saturate v_cmd
         v_cmd = np.clip(v_cmd, -params.max_vel, params.max_vel)
@@ -122,6 +113,7 @@ class ControlNode():
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
         self.traj_idx = 0
         self.controllers.resetController()
+        self.controllers.traj_ctrl.waypoints2Spline(self.trajectory)
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
@@ -199,7 +191,7 @@ class ControlNode():
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
+                v_des, w_des = self.controllers.trajectoryController(self.pos, self.theta)
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)

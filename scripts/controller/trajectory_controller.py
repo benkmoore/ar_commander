@@ -1,7 +1,7 @@
 
-import scipy as sp
+import scipy.interpolate as spi
+import scipy.signal as sps
 import numpy as np
-
 
 class TrajectoryController():
     def __init__(self, num, den):
@@ -9,14 +9,19 @@ class TrajectoryController():
         self.y_ctrl = PIDController(num, den)
         self.theta_ctrl = PIDController(num, den)
 
+        self.x_spline = None
+        self.y_spline = None
+        self.theta_spline = None
+
 
     def waypoints2Spline(self, trajectory):
-        x_pts, y_pts, theta_pts = np.split(trajectory, 3)
+        x, y, theta = np.split(trajectory, 3, axis=1)
+        order_x = np.argsort(x.reshape(-1))
+        order_y = np.argsort(y.reshape(-1))
 
-        self.x_spline = sp.interpolate.UnivariateSpline(y_pts, x_pts) # output: x_des, input: y
-        self.y_spline = sp.interpolate.UnivariateSpline(x_pts, y_pts) # output: y_des, input: x
-        self.theta_spline = sp.interpolate.SmoothBivariateSpline(x_pts, y_pts, theta_pts) # output: theta_des, input: x, y
-
+        self.x_spline = spi.UnivariateSpline(y[order_y], x[order_y]) # output: x_des, input: y
+        self.y_spline = spi.UnivariateSpline(x[order_x], y[order_x]) # output: y_des, input: x
+        self.theta_spline = spi.SmoothBivariateSpline(x, y, theta) # output: theta_des, input: x, y
 
     def getControlCmds(self, state):
         # reference inputs
@@ -24,12 +29,13 @@ class TrajectoryController():
         r_x = self.x_spline(y)
         r_y = self.y_spline(x)
         r_theta = self.theta_spline.ev(x, y)
+        print(r_x, r_y, r_theta)
 
         # control commands
         u_x = self.x_ctrl.getControlCmd(r_x)
         u_y = self.y_ctrl.getControlCmd(r_y)
         u_theta = self.theta_ctrl.getControlCmd(r_theta)
-        u = np.hstack((u_x, u_y, u_theta))
+        u = np.hstack((u_x, u_y, np.zeros(1)))
 
         return u
 
@@ -43,7 +49,7 @@ class PIDController():
 
 
     def getControlCmd(self, r):
-        u = sp.signal.lfilter(self.num, self.den, r)
-
+        u = sps.lfilter(self.num, self.den, r)
+        print(u)
         return u 
 
