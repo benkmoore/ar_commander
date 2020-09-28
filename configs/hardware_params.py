@@ -18,3 +18,5 @@ trajectoryControllerGains = {'kp_pos':40, 'kp_th':0.75, 'kd_pos':0.5, 'k_ol':50}
 positionFilterParams = {'Q':10*np.eye(2), 'Q_d':100*np.eye(2), 'R':0.01*np.eye(2), 'R_d':np.eye(2)}
 
 thetaFilterParams = {'Q':10, 'Q_d':100, 'R':0.01}
+
+loc_confidence_threshold = 0.5             # decawave measurement confidence threshold, range [0, 1]

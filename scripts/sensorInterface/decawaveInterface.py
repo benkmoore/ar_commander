@@ -7,11 +7,14 @@ import rospy
 import numpy as np
 from ar_commander.msg import Decawave
 
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+
+import configs.hardware_params as params
+
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
 RATE = 10
 
-#-------------Work in progress------------------#
 
 
 class DecaInterface():
@@ -112,10 +115,10 @@ class GetPose():
 
         self.absolutePos.x1.data = self.boardY.x
         self.absolutePos.y1.data = self.boardY.y
-        self.absolutePos.new_meas1.data = self.boardY.dataRead
+        self.absolutePos.new_meas1.data = self.boardY.dataRead and (self.boardY.confidence > params.loc_confidence_threshold)
         self.absolutePos.x2.data = self.boardX.x
         self.absolutePos.y2.data = self.boardX.y
-        self.absolutePos.new_meas2.data = self.boardX.dataRead
+        self.absolutePos.new_meas2.data = self.boardX.dataRead and (self.boardX.confidence > params.loc_confidence_threshold)
         self.absolutePos.theta.data = theta
 
     def run(self):
