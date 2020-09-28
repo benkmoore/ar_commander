@@ -44,7 +44,7 @@ class LocalizationFilter():
 
     def update(self, y, R):
         y_delta = y - np.matmul(self.C, self.x_pred)
-        if self.angle:  # wrap delta angle along axis
+        if self.is_angle:  # wrap delta angle along axis
             y_delta = np.apply_along_axis(self.wrap_angle, 0, y_delta)
         innovation_cov = npl.inv(npl.multi_dot([self.C, self.sigma_pred, self.C.T]) + R)
 
