@@ -2,11 +2,13 @@
 import scipy.interpolate as spi
 import scipy.signal as sps
 import numpy as np
-
-import matplotlib.pyplot as plt
+import numpy.linalg as npl
 
 class TrajectoryController():
-    def __init__(self, num, den):
+    def __init__(self, ctrl_tf):
+        num = ctrl_tf['num']
+        den = ctrl_tf['den']
+        
         self.x_ctrl = PIDController(num, den)
         self.y_ctrl = PIDController(num, den)
         self.theta_ctrl = PIDController(num, den)
@@ -20,26 +22,21 @@ class TrajectoryController():
         x, y, theta = np.split(trajectory.reshape(-1, 3), 3, axis=1)
         x = x.reshape(-1)
         y = y.reshape(-1)
-        #theta = theta.reshape(-1)
-        order_x = np.argsort(x)
-        order_y = np.argsort(y)
-
         x_uniq, x_idxs = np.unique(x, return_index=True) # drop duplicates for spline fit
         y_uniq, y_idxs = np.unique(y, return_index=True)
 
-        self.x_spline = spi.splrep(y_uniq, x[y_idxs]) # output: x desired, input: y
-        self.y_spline = spi.splrep(x_uniq, y[x_idxs]) # output: y desired, input: x
-        self.th_spline = spi.interp2d(x, y, theta) # output: theta desired, input: x
+        self.x_spline = spi.splrep(y_uniq, x[y_idxs]) # input: y, output: x desired
+        self.y_spline = spi.splrep(x_uniq, y[x_idxs]) # input: x, output: y desired
+        self.th_spline = spi.interp2d(x, y, theta) # input: x & y, output: theta desired
 
 
-    def getControlCmds(self, state):
+    def getControlCmds(self, state, wp):
+        x, y, theta = np.split(state, 3) 
+
         # reference inputs
-        x, y, theta = np.split(state, 3)
-        print(x, y, theta)
         r_x = spi.splev(y, self.x_spline)
         r_y = spi.splev(x, self.y_spline)
         r_theta = self.th_spline(x,y)
-        print(r_x, r_y, r_theta)
 
         # control commands
         u_x = self.x_ctrl.getControlCmd(r_x)
@@ -60,6 +57,6 @@ class PIDController():
 
     def getControlCmd(self, r):
         u = sps.lfilter(self.num, self.den, r)
-        print(u)
+
         return u 
 

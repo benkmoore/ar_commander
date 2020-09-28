@@ -12,7 +12,7 @@ thetaControllerGains = {'kp':3, 'ki':0.03, 'kd':5e-2}
 
 pointControllerGains = {'kp':0.5, 'kd':0}
 
-trajectoryControllerGains = {'kp_pos':0.25, 'kp_th':0.75, 'kd_pos':0.5, 'k_ol':0.5}
+trajectoryControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'den': np.array([ 1., -1.97219114,  0.97238837])}
 
 # noise/uncertainty estimate on predict (Q) meas. (R) process and derivatives (d)
 positionFilterParams = {'Q':10*np.eye(2), 'Q_d':100*np.eye(2), 'R':0.01*np.eye(2), 'R_d':100*np.eye(2)}

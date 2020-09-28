@@ -27,10 +27,7 @@ class ControlLoops():
 
     def __init__(self):
         self.theta_error_sum = 0
-
-        num = np.array([ 0.2, -0.3722704 ,  0.17246762])
-        den = np.array([ 1., -1.97219114,  0.97238837])
-        self.traj_ctrl = TrajectoryController(num, den)
+        self.traj_ctrl = TrajectoryController(params.trajectoryControllerTF)
 
     def resetController(self):
         self.theta_error_sum = 0
@@ -55,8 +52,8 @@ class ControlLoops():
         v_cmd = kp*p_err + kd*vel
         return v_cmd
 
-    def trajectoryController(self, pos, theta):
-        u = self.traj_ctrl.getControlCmds(np.hstack((pos, theta)))
+    def trajectoryController(self, pos, theta, wp):
+        u = self.traj_ctrl.getControlCmds(np.hstack((pos, theta)), wp)
         v_cmd = u[0:2]
         omega_cmd = u[2]
 
@@ -191,7 +188,7 @@ class ControlNode():
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.controllers.trajectoryController(self.pos, self.theta)
+                v_des, w_des = self.controllers.trajectoryController(self.pos, self.theta, wp)
             else:
                 v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
