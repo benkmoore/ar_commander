@@ -3,6 +3,8 @@ import scipy.interpolate as spi
 import scipy.signal as sps
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 class TrajectoryController():
     def __init__(self, num, den):
         self.x_ctrl = PIDController(num, den)
@@ -15,20 +17,28 @@ class TrajectoryController():
 
 
     def waypoints2Spline(self, trajectory):
-        x, y, theta = np.split(trajectory, 3, axis=1)
-        order_x = np.argsort(x.reshape(-1))
-        order_y = np.argsort(y.reshape(-1))
+        x, y, theta = np.split(trajectory.reshape(-1, 3), 3, axis=1)
+        x = x.reshape(-1)
+        y = y.reshape(-1)
+        #theta = theta.reshape(-1)
+        order_x = np.argsort(x)
+        order_y = np.argsort(y)
 
-        self.x_spline = spi.UnivariateSpline(y[order_y], x[order_y]) # output: x_des, input: y
-        self.y_spline = spi.UnivariateSpline(x[order_x], y[order_x]) # output: y_des, input: x
-        self.theta_spline = spi.SmoothBivariateSpline(x, y, theta) # output: theta_des, input: x, y
+        x_uniq, x_idxs = np.unique(x, return_index=True) # drop duplicates for spline fit
+        y_uniq, y_idxs = np.unique(y, return_index=True)
+
+        self.x_spline = spi.splrep(y_uniq, x[y_idxs]) # output: x desired, input: y
+        self.y_spline = spi.splrep(x_uniq, y[x_idxs]) # output: y desired, input: x
+        self.th_spline = spi.interp2d(x, y, theta) # output: theta desired, input: x
+
 
     def getControlCmds(self, state):
         # reference inputs
         x, y, theta = np.split(state, 3)
-        r_x = self.x_spline(y)
-        r_y = self.y_spline(x)
-        r_theta = self.theta_spline.ev(x, y)
+        print(x, y, theta)
+        r_x = spi.splev(y, self.x_spline)
+        r_y = spi.splev(x, self.y_spline)
+        r_theta = self.th_spline(x,y)
         print(r_x, r_y, r_theta)
 
         # control commands
