@@ -141,8 +141,8 @@ class GetPose():
         each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
         derived from the heading calculation, the formula relates robot heading to sensor measurements.
         """
-        self.cov_pos1 = ((self.pos_meas_std**2)/self.boardY.confidence)*np.eye(2)
-        self.cov_pos2 = ((self.pos_meas_std**2)/self.boardX.confidence)*np.eye(2)
+        self.cov_pos1 = (self.pos_meas_std**2)*np.eye(2)
+        self.cov_pos2 = (self.pos_meas_std**2)*np.eye(2)
 
         dx = self.pos2[0] - self.pos1[0]
         dy = self.pos2[1] - self.pos1[1]
