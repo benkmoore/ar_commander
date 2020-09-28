@@ -119,11 +119,6 @@ class GetPose():
         self.pos2 = None
         self.theta = None
 
-        # previous measurements
-        self.pos1_prev = None
-        self.pos2_prev = None
-        self.theta_prev = None
-
         # covariance of measurements
         self.cov_pos1 = None
         self.cov_pos2 = None
@@ -137,14 +132,15 @@ class GetPose():
         self.pub_decaInterface.publish(self.measurement_msg)
 
 
-    """
-    calculate measurement covariances function
-    Uses decawave hardware param, standard deviation on position measurement and the outputted confidence in the
-    measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from 
-    each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
-    derived from the heading calculation, the formula relates robot heading to sensor measurements.
-    """
     def calculateCovs(self):
+        """
+        Calculate measurement covariances.
+        
+        Uses decawave hardware param, standard deviation on position measurement and the outputted confidence in the
+        measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from 
+        each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
+        derived from the heading calculation, the formula relates robot heading to sensor measurements.
+        """
         self.cov_pos1 = ((self.pos_meas_std**2)/self.boardY.confidence)*np.eye(2)
         self.cov_pos2 = ((self.pos_meas_std**2)/self.boardX.confidence)*np.eye(2)
 

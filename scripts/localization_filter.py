@@ -12,26 +12,25 @@ class LocalizationFilter():
     to [-pi, pi].
     """
 
-    def __init__(self, x0, sigma0, A, B, C, Q, angle):
-        # initial state and covariance
+    def __init__(self, x0, sigma0, A, B, C, Q, is_angle=False):
+        # predicted and estimated states/covariances
         self.x = x0
         self.sigma = sigma0
-        # predicted state and covariance
         self.x_pred = None
         self.sigma_pred = None
-        # dynamics model
+
+        # state-space model
         self.A = A
         self.B = B
-        # measurement model
         self.C = C
-        # uncertainty, Q on predict step
-        self.Q = Q
-        # is state angle
-        self.angle = angle
+
+        self.Q = Q  # covariance on process noise
+
+        self.is_angle = is_angle   # specifies whether state is an angle (and needs to be wrapped)
  
 
-    # wrap angle to [-pi, pi] to avoid delta > pi in filter state
     def wrap_angle(self, angle):
+        """Wraps angle to [-pi, pi] to avoid delta > pi in filter state"""
         if abs(angle) > np.pi:
             angle = angle - np.sign(angle) * 2 * np.pi
 
