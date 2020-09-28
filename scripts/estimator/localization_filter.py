@@ -26,7 +26,7 @@ class LocalizationFilter():
 
     def step(self, u, y, C):
         self.predict(u)
-        if y is not None:
+        if y.size > 0:
             self.update(y, C)
 
         return self.x, self.sigma
