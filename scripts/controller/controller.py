@@ -89,8 +89,6 @@ class ControlNode():
 
         self.mode = None
 
-        self.phi_prev = np.zeros(rcfg.N)   # can initialize to 0 as it will only affect first command
-
         # navigation info
         self.trajectory = None
         self.traj_idx = 0
@@ -99,8 +97,6 @@ class ControlNode():
         self.controllers = ControlLoops()
 
         # output commands
-        self.wheel_phi_cmd = None
-        self.wheel_w_cmd = None
         self.robot_v_cmd = None
         self.robot_omega_cmd = None
 
@@ -148,42 +144,6 @@ class ControlNode():
 
             return wp, wp_prev
 
-    def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
-        """Convert velocity and omega commands to motor inputs"""
-
-        # convert inputs to robot frame velocity commands
-        R = np.array([[np.cos(self.theta), np.sin(self.theta)],     # rotation matrix
-                      [-np.sin(self.theta), np.cos(self.theta)]])
-        v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
-
-        v_th1 = np.vstack([-rcfg.R1*omega_cmd, np.zeros(rcfg.N/2)])
-        v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
-        v_th_rf = np.hstack([v_th1, v_th2])
-
-        v_xy = v_cmd_rf + v_th_rf
-
-        # Convert to |V| and phi
-        v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
-
-        # pick closest phi
-        phi_diff = phi_cmd - self.phi_prev
-        idx = abs(phi_diff) > np.pi/2
-        phi_cmd -= np.pi*np.sign(phi_diff)*idx
-        v_wheel *= -1*idx + 1*~idx
-
-        # enforce physical bounds
-        idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
-        idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
-
-        phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
-        v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
-
-        # map to desired omega (angular velocity) of wheels: w = v/r
-        w_wheel = v_wheel/rcfg.wheel_radius
-
-        return w_wheel, phi_cmd
-
     ## Main Loops
     def controlLoop(self):
         # default behavior
@@ -203,16 +163,12 @@ class ControlNode():
                 w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
                 self.last_waypoint_flag = True
 
-            self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             self.robot_v_cmd = v_des
             self.robot_omega_cmd = w_des
-            self.phi_prev = self.wheel_phi_cmd     # store previous command
 
     def publish(self):
         """ publish cmd messages """
         cmd = ControllerCmd()
-        cmd.omega_arr.data = self.wheel_w_cmd
-        cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
 

@@ -21,5 +21,6 @@
         <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
         <node pkg="ar_commander" type="navigator_test.py" name="Navigator" output="screen" />
         <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+	    <node pkg="ar_commander" type="actuatorInterface.py" name="ActuatorInterface" output="screen" />
     </group>
 </launch>
