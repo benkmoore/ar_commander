@@ -155,8 +155,8 @@ class GetPose():
         dth_dp1 = np.abs(np.array([dth_dx1, dth_dy1]))
         dth_dp2 = np.abs(np.array([dth_dx2, dth_dy2]))
 
-        std_theta = np.matmul(dth_dp1, np.sqrt(self.cov_pos1)) + np.matmul(dth_dp2, np.sqrt(self.cov_pos2))
-        self.cov_theta = std_theta ** 2
+        std_theta = np.dot(dth_dp1, np.sqrt(self.cov_pos1)) + np.matmul(dth_dp2, np.sqrt(self.cov_pos2))
+        self.cov_theta = np.mean(std_theta) ** 2
 
 
     def updateMeasurementMsgData(self):
@@ -168,7 +168,6 @@ class GetPose():
         self.measurement_msg.theta.data = self.theta
 
         # covariances
-        print(self.cov_pos1)
         self.measurement_msg.cov1.data = self.cov_pos1.reshape(-1)
         self.measurement_msg.cov2.data = self.cov_pos2.reshape(-1)
         self.measurement_msg.cov_theta.data = self.cov_theta
