@@ -24,18 +24,22 @@ RATE = 10
 
 
 class Estimator():
+
     def __init__(self):
         rospy.init_node('estimator')
 
         # timestep
         self.dt = 1. / RATE
 
-        # incoming measurements (inputs) & flags
+        # incoming measurements, covariances (inputs) & flags
         self.pos_meas1 = None
         self.pos_meas2 = None
         self.loc_meas1_flag = None
         self.loc_meas2_flag = None
         self.theta_meas = None
+        self.cov_pos_meas1 = None
+        self.cov_pos_meas2 = None
+        self.cov_theta_meas = None
 
         # controller cmds
         self.vel_cmd = None
@@ -55,22 +59,29 @@ class Estimator():
         # publishers
         self.pub_state = rospy.Publisher('estimator/state', State, queue_size=10)
 
+
     def controllerCmdCallback(self, msg):
         self.vel_cmd = np.array(msg.robot_vel.data)
         self.omega_cmd = msg.robot_omega.data
 
+
     def decawaveCallback(self, msg):
         self.theta_meas = msg.theta.data
+        self.cov_theta_meas = msg.cov_theta.data
+
         # transform pos_meas to center corner of robot
         tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
         self.pos_meas1 = np.array([msg.x1.data+rcfg.L*np.sin(tf_angle),
                                     msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
         self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle),
                                     msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
+        self.cov_pos_meas1 = np.reshape(msg.cov1.data, (2,2))
+        self.cov_pos_meas2 = np.reshape(msg.cov2.data, (2,2))
 
         # update measurement flags
         self.loc_meas1_flag = msg.new_meas1.data
         self.loc_meas2_flag = msg.new_meas2.data
+
 
     def initPosKF(self):
         self.pos_state = None #state: [pos_x, pos_y, vel_x, vel_y]
@@ -78,8 +89,8 @@ class Estimator():
         A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2,2))]])
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
         Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
-        R_pos = np.block([[params.positionFilterParams['R'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['R_d']]])
-        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, Q=Q_pos, R=R_pos)
+        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, Q=Q_pos)
+
 
     def initThetaKF(self):
         self.theta_state = None #state: [theta, theta_dot]
@@ -87,8 +98,8 @@ class Estimator():
         A_theta = np.array([[1, 0], [0, 0]])
         B_theta = np.array([[self.dt],[1]])
         Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
-        R_theta = params.thetaFilterParams['R']
-        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, Q=Q_theta, R=R_theta)
+        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, Q=Q_theta, is_angle=True)
+
 
     def getPosFilterInputs(self):
         """Retreive pos filter step inputs"""
@@ -105,6 +116,7 @@ class Estimator():
 
         return u_pos, y_pos, C_pos
 
+
     def getThetaFilterInputs(self):
         # get theta filter inputs
         u_theta = np.array([self.omega_cmd])
@@ -115,6 +127,7 @@ class Estimator():
             y_theta = C_theta = np.array([])
 
         return u_theta, y_theta, C_theta
+
 
     def updateState(self):
         """
@@ -146,8 +159,10 @@ class Estimator():
             self.state.theta.data = self.theta_state[0]
             self.state.omega.data = self.theta_state[1]
 
+
     def publish(self):
         self.pub_state.publish(self.state)
+
 
     def run(self):
         rate = rospy.Rate(RATE) # 10 Hz
@@ -156,6 +171,7 @@ class Estimator():
             if self.state is not None:
                 self.publish()
             rate.sleep()
+
 
 
 if __name__ == '__main__':
