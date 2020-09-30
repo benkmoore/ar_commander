@@ -173,8 +173,8 @@ class GetPose():
         self.measurement_msg.cov_theta.data = self.cov_theta
 
         # flags
-        self.measurement_msg.new_meas1.data = self.boardY.dataRead and (self.boardY.confidence > params.loc_confidence_threshold)
-        self.measurement_msg.new_meas2.data = self.boardX.dataRead and (self.boardX.confidence > params.loc_confidence_threshold)
+        self.measurement_msg.new_meas1.data = self.boardY.dataRead
+        self.measurement_msg.new_meas2.data = self.boardX.dataRead
         
 
     def obtainMeasurements(self):
