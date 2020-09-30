@@ -12,51 +12,55 @@ sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 import configs.hardware_params as params
 
-# timeout in seconds for how long we try to read serial data if no data immediately available
-SERIALTIMEOUT = 0.3
-RATE = 10
+PORT1 = params.decawave_ports[0]  # sensor 1 usb port: Y axis arm of robot
+PORT2 = params.decawave_ports[1]  # sensor 2 usb port: X axis arm of robot
+SERIALTIMEOUT = 0.3     # duration of serial read (s) 
+NUM_READ_FAILS = 30     # number of read attempts before serial connection is restarted
+RATE = 10               # (Hz)
 
 
 
 class DecaInterface():
     def __init__(self,port):
-
         # pySerial parameters set to match decawave params
         self.ser = serial.Serial()
         self.ser.port = port
-        # baudrate is bits per second expected on the serial channel (the deca boards use 115200)
         self.ser.baudrate = 115200
         self.ser.bytesize = serial.EIGHTBITS
         self.ser.parity =serial.PARITY_NONE
         self.ser.stopbits = serial.STOPBITS_ONE
         self.ser.timeout = SERIALTIMEOUT
 
+        # data variables
         self.x = None
         self.y = None
-
-        #confidence not published right now, its the value that the boards give for how confident they are
         self.confidence = None
         self.readFails = 0
-        #flag to check if board has read good data
         self.dataRead = None
 
+
     def connect(self):
+        """
+        Connect to decawave board and to request localization data
+
+        Shell mode is entered via a serial write command and the serial
+        buffer is reset before data is requested. Before writing 'lep' to 
+        the board the input buffer is reset to 0. If the buffer fills, this 
+        means that the board is already sending info down the serial line 
+        and if we send our command in this case then it will stop the info.
+        """
+
         if not self.ser.is_open:
             self.ser.open()
-        #this command gets us into shell mode where we can talk to the board
-        self.ser.write(b'\r\r')
-        #this sleep is important until we find a better way
-        time.sleep(1)
+        
+        self.ser.write(b'\r\r') # enter shell mode to talk to the board
+        time.sleep(1) # comms setup time
         rospy.loginfo("Decawave serial connecting")
 
-        #here we reset the input buffer to 0, then wait to see if it fills again
-        #if the buffer fills, this means that the board is already sending info down the serial line
-        #and if we send our command in this case ^ then it will stop the info.
         self.ser.reset_input_buffer()
         time.sleep(0.2)
         if self.ser.in_waiting == 0:
-            #when the board receives 'lep' it returns the [x,y,z,confidence] data
-            self.ser.write(b"lep\r")
+            self.ser.write(b"lep\r") # board receives 'lep' and returns the [x,y,z,confidence] data
 
 
     def readSerial(self):
@@ -76,23 +80,23 @@ class DecaInterface():
                 self.readFails = 0
                 self.dataRead = True
                 self.ser.reset_input_buffer()
-        else:
+        else: # if no pose data read more than NUM_READ_FAILS redo the serial connection
             self.readFails += 1
             self.dataRead = False
             rospy.logerr("on port %s, readSerial failed to read serial data %s times.", self.ser.port, self.readFails)
-            #if we dont read any pose data for this amount of tries then redo the serial connection
         
-        if self.readFails > 30:
-            #check connection between boards + orientation of tag.
+        if self.readFails > NUM_READ_FAILS: # check connection between boards + orientation of tag.
             rospy.logerr("readSerial failed to read serial data %s times. Check: 1. Anchors xy pos is accurate, 2. Enough anchors in range, 3. Orientation of tag.", self.readFails)
             self.readFails = 0
             self.dataRead = False
             self.connect()
 
+
     def closeConnection(self):
         self.ser.write(b'lep\r')
         self.ser.reset_input_buffer()
         self.ser.close()
+
 
 
 class GetPose():
@@ -121,6 +125,7 @@ class GetPose():
 
         # publishers
         self.pub_decaInterface = rospy.Publisher('sensor/decawave_measurement', Decawave, queue_size=10)
+
 
     def publish(self):
         self.pub_decaInterface.publish(self.measurement_msg)
@@ -155,47 +160,35 @@ class GetPose():
 
 
     def updateMeasurementMsgData(self):
+        """ Populate Decawave message with sensor data, measurement covariances and read flags"""
         self.measurement_msg.x1.data = self.boardY.x # pos 1 on Y axis arm
         self.measurement_msg.y1.data = self.boardY.y
         self.measurement_msg.x2.data = self.boardX.x # pos 2 on X axis arm
         self.measurement_msg.y2.data = self.boardX.y
         self.measurement_msg.theta.data = self.theta
+
         # covariances
         self.measurement_msg.cov1.data = self.cov_pos1
         self.measurement_msg.cov2.data = self.cov_pos2
         self.measurement_msg.cov_theta.data = self.cov_theta
 
-        # update previous measurements
-        self.pos1_prev = self.pos1
-        self.pos2_prev = self.pos2
-        self.theta_prev = self.theta
+        # flags
+        self.measurement_msg.new_meas1.data = self.boardY.dataRead and (self.boardY.confidence > params.loc_confidence_threshold)
+        self.measurement_msg.new_meas2.data = self.boardX.dataRead and (self.boardX.confidence > params.loc_confidence_threshold)
+        
 
     def obtainMeasurements(self):
-<<<<<<< HEAD
-        theta = np.arctan2(-(self.boardY.y - self.boardX.y) , -(self.boardY.x - self.boardX.x)) + np.pi/4
-        if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
-
-        self.absolutePos.x1.data = self.boardY.x
-        self.absolutePos.y1.data = self.boardY.y
-        self.absolutePos.new_meas1.data = self.boardY.dataRead and (self.boardY.confidence > params.loc_confidence_threshold)
-        self.absolutePos.x2.data = self.boardX.x
-        self.absolutePos.y2.data = self.boardX.y
-        self.absolutePos.new_meas2.data = self.boardX.dataRead and (self.boardX.confidence > params.loc_confidence_threshold)
-        self.absolutePos.theta.data = theta
-=======
         self.theta = np.arctan2(self.boardX.y-self.boardY.y, self.boardX.x-self.boardY.x) + np.pi/4
         if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
         self.pos1 = np.array([self.boardY.x, self.boardY.y])
         self.pos2 = np.array([self.boardX.x, self.boardX.y])
 
-        # find pos1, pos2 & theta covariances
         self.calculateCovs()
-        # add new data to output msg
         self.updateMeasurementMsgData()
->>>>>>> 56a57560ef3af800fd8916a78dafeb2d3c8b9b93
+
 
     def run(self):
-        rate = rospy.Rate(RATE) # 10 Hz
+        rate = rospy.Rate(RATE) 
         while not rospy.is_shutdown():
             self.boardY.readSerial()
             self.boardX.readSerial()
@@ -205,6 +198,7 @@ class GetPose():
             rate.sleep()
 
 
+
 if __name__ == '__main__':
-    getPose = GetPose('/dev/ttyACM1', '/dev/ttyACM2')
+    getPose = GetPose(PORT1, PORT2)
     getPose.run()

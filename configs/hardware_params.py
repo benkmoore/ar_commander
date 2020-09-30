@@ -23,3 +23,5 @@ thetaFilterParams = {"Q": 0.1, "Q_d": 0.1}
 loc_confidence_threshold = 0.5             # decawave measurement confidence threshold, range [0, 1]
 
 pos_measurement_std = 0.035                # position measurement standard deviation (m)
+
+decawave_ports = ['/dev/ttyACM1', '/dev/ttyACM2'] # sensor usb ports: [Y axis arm of robot, X axis arm of robot]
