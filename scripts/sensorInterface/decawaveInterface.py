@@ -100,8 +100,8 @@ class DecaInterface():
 
 
 class GetPose():
-    def __init__(self,port1,port2):
-        rospy.init_node('decaInterface', anonymous=True)
+    def __init__(self, port1, port2):
+        rospy.init_node('decawaveInterface', anonymous=True)
 
         # Decawave msgs
         self.measurement_msg = Decawave()
