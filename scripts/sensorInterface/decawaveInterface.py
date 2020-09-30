@@ -168,8 +168,9 @@ class GetPose():
         self.measurement_msg.theta.data = self.theta
 
         # covariances
-        self.measurement_msg.cov1.data = self.cov_pos1
-        self.measurement_msg.cov2.data = self.cov_pos2
+        print(self.cov_pos1)
+        self.measurement_msg.cov1.data = self.cov_pos1.reshape(-1)
+        self.measurement_msg.cov2.data = self.cov_pos2.reshape(-1)
         self.measurement_msg.cov_theta.data = self.cov_theta
 
         # flags
@@ -178,10 +179,13 @@ class GetPose():
         
 
     def obtainMeasurements(self):
-        self.theta = np.arctan2(self.boardX.y-self.boardY.y, self.boardX.x-self.boardY.x) + np.pi/4
-        if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
-        self.pos1 = np.array([self.boardY.x, self.boardY.y])
-        self.pos2 = np.array([self.boardX.x, self.boardX.y])
+        if self.boardY.dataRead and self.boardX.dataRead:
+            self.theta = np.arctan2(self.boardX.y-self.boardY.y, self.boardX.x-self.boardY.x) + np.pi/4
+            if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
+        if self.boardY.dataRead:
+            self.pos1 = np.array([self.boardY.x, self.boardY.y])
+        if self.boardX.dataRead:
+            self.pos2 = np.array([self.boardX.x, self.boardX.y])
 
         self.calculateCovs()
         self.updateMeasurementMsgData()

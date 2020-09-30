@@ -106,15 +106,21 @@ class Estimator():
         u_pos = self.vel_cmd
         y_pos = np.array([])
         C_pos = np.empty((0,4))
-
+        R_pos = np.array([]) 
+                
         if self.loc_meas1_flag:
             y_pos = np.append(y_pos, self.pos_meas1)
             C_pos = np.vstack((C_pos, np.block([np.eye(2), np.zeros((2, 2))])))
+            R_pos = self.cov_pos_meas1
         if self.loc_meas2_flag:
             y_pos = np.append(y_pos, self.pos_meas2)
             C_pos = np.vstack((C_pos, np.block([np.eye(2), np.zeros((2, 2))])))
+            if R_pos.size == 0: 
+                R_pos = self.cov_pos_meas2               
+            else:
+                R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [np.zeros((2,2)), self.cov_pos_meas2]])
 
-        return u_pos, y_pos, C_pos
+        return u_pos, y_pos, C_pos, R_pos
 
 
     def getThetaFilterInputs(self):
@@ -123,10 +129,11 @@ class Estimator():
         if self.loc_meas1_flag and self.loc_meas2_flag:
             y_theta = np.array([self.theta_meas])
             C_theta = np.array([1, 0]).reshape(1, 2)
+            R_theta = self.cov_theta_meas
         else:
-            y_theta = C_theta = np.array([])
+            y_theta = C_theta = R_theta = np.array([])
 
-        return u_theta, y_theta, C_theta
+        return u_theta, y_theta, C_theta, R_theta
 
 
     def updateState(self):
@@ -146,11 +153,11 @@ class Estimator():
             self.state.vel.data = np.zeros(2)
             self.state.omega.data = 0
         else:  # run localization filter
-            u_pos, y_pos, C_pos = self.getPosFilterInputs()
-            u_theta, y_theta, C_theta = self.getThetaFilterInputs()
+            u_pos, y_pos, C_pos, R_pos = self.getPosFilterInputs()
+            u_theta, y_theta, C_theta, R_theta = self.getThetaFilterInputs()
 
-            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, C_pos)
-            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, C_theta)
+            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, C_pos, R_pos)
+            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, C_theta, R_theta)
 
             self.loc_meas1_flag = self.loc_meas2_flag = False  # reset measurement flags
 
