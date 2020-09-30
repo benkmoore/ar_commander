@@ -62,40 +62,40 @@ class ActuatorInterface():
 
 
     def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
-            """Convert velocity and omega commands to motor inputs"""
+        """Convert velocity and omega commands to motor inputs"""
 
-            # convert inputs to robot frame velocity commands
-            R = np.array([[np.cos(self.theta), np.sin(self.theta)],     # rotation matrix
-                        [-np.sin(self.theta), np.cos(self.theta)]])
-            v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
+        # convert inputs to robot frame velocity commands
+        R = np.array([[np.cos(self.theta), np.sin(self.theta)],     # rotation matrix
+                    [-np.sin(self.theta), np.cos(self.theta)]])
+        v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
 
-            v_th1 = np.vstack([-rcfg.R1*omega_cmd, np.zeros(rcfg.N/2)])
-            v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
-            v_th_rf = np.hstack([v_th1, v_th2])
+        v_th1 = np.vstack([-rcfg.R1*omega_cmd, np.zeros(rcfg.N/2)])
+        v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
+        v_th_rf = np.hstack([v_th1, v_th2])
 
-            v_xy = v_cmd_rf + v_th_rf
+        v_xy = v_cmd_rf + v_th_rf
 
-            # Convert to |V| and phi
-            v_wheel = npl.norm(v_xy, axis=0)
-            phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
+        # Convert to |V| and phi
+        v_wheel = npl.norm(v_xy, axis=0)
+        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
 
-            # pick closest phi
-            phi_diff = phi_cmd - self.phi_prev
-            idx = abs(phi_diff) > np.pi/2
-            phi_cmd -= np.pi*np.sign(phi_diff)*idx
-            v_wheel *= -1*idx + 1*~idx
+        # pick closest phi
+        phi_diff = phi_cmd - self.phi_prev
+        idx = abs(phi_diff) > np.pi/2
+        phi_cmd -= np.pi*np.sign(phi_diff)*idx
+        v_wheel *= -1*idx + 1*~idx
 
-            # enforce physical bounds
-            idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
-            idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
+        # enforce physical bounds
+        idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
+        idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
 
-            phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
-            v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
+        phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
+        v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
-            # map to desired omega (angular velocity) of wheels: w = v/r
-            w_wheel = v_wheel/rcfg.wheel_radius
+        # map to desired omega (angular velocity) of wheels: w = v/r
+        w_wheel = v_wheel/rcfg.wheel_radius
 
-            return w_wheel, phi_cmd
+        return w_wheel, phi_cmd
 
 
     def publish(self):
@@ -117,6 +117,7 @@ class ActuatorInterface():
                 self.actuateMotors()
                 self.publish()
             rate.sleep()
+
 
 
 if __name__ == '__main__':
