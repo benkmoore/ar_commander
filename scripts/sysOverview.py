@@ -1,5 +1,28 @@
 #!/usr/bin/env python
 
+"""
+Logging script
+
+Outputs all data for each robot requested in a table format.
+Robot IDs (namespaces) are added to the --robot_id arg. 
+
+Arguments:
+---------
+
+static: if true table is cleared at each iteration and updated. 
+        If false table is printed beneath the most recently printed
+        table. Empty string '' evaluates to False.
+
+robot_ids: list of robot IDs (namespaces) to gather data from.
+
+Example usage:
+-------------
+
+python sysOverview.py --static '' --robot_ids 'robot1' 'robot2' 'robot3' 'robot4'
+
+python sysOverview.py --static False --robot_ids 'robot1' 'robot2'
+"""
+
 import os
 import numpy as np
 import rospy
