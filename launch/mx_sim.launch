@@ -3,12 +3,6 @@
 	<!-- Create world -->
 	<include file="$(find ar_sim)/launch/world.launch"/>
 
-    <!-- Set enviroment variable to sim -->
-    <param name="ENV" value="sim" />
-    <!-- Set path to ar repos -->
-    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
-    <param name="AR_SIM_DIR" value="$(find ar_sim)" />
-
 	<!-- Create Robot 1 -->
 	<group ns="robot1">
 		<include file="$(find ar_commander)/launch/ar_robot.launch">

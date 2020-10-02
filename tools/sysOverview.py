@@ -4,12 +4,12 @@
 Logging script
 
 Outputs all data for each robot requested in a table format.
-Robot IDs (namespaces) are added to the --robot_id arg. 
+Robot IDs (namespaces) are added to the --robot_id arg.
 
 Arguments:
 ---------
 
-static: if true table is cleared at each iteration and updated. 
+static: if true table is cleared at each iteration and updated.
         If false table is printed beneath the most recently printed
         table. Empty string '' evaluates to False.
 
@@ -28,19 +28,21 @@ import numpy as np
 import rospy
 import time
 import argparse
+import sys
 
 from tabulate import tabulate
-from stateMachine.stateMachine import Mode
+
+AR_COMMANDER_DIR = '/' + os.path.join(*(os.getcwd().split('/')[:-1]))
+sys.path.append(AR_COMMANDER_DIR)
+
+from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Decawave, State, ControllerCmd
 from std_msgs.msg import Int8
 
 RATE = 3 # display rate
 DECIMALS = 1
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--static', type=bool, default=True)
-parser.add_argument('--robot_ids', nargs='+')
-args = parser.parse_args()
+
 
 class Logger():
     def __init__(self, robot_IDs, static):
@@ -107,7 +109,7 @@ class Logger():
 
     def resetTable(self):
         self.table = []
-        if self.static: 
+        if self.static:
             os.system('clear')
 
 
@@ -169,6 +171,11 @@ class DataRetriever():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--static', type=bool, default=True)
+    parser.add_argument('--robot_ids', nargs='+', required=True)
+    args = parser.parse_args()
+
     logger = Logger(args.robot_ids, args.static)
     rate = rospy.Rate(RATE)
     while not rospy.is_shutdown():
