@@ -28,7 +28,7 @@
 			<arg name="robot_tf" value="tf_3" />
 			<arg name="init_pose" value="-x 2 -y 2 -z 0" />
 		</include>
-    </group>  
+    </group>
 
 	<!-- Create robot 4 -->
 	<group ns="robot4">
@@ -37,6 +37,6 @@
 	    	<arg name="init_pose" value="-x 0 -y 2 -z 0" />
 	    	<arg name="robot_tf" value="tf_4" />
 	    </include>
-	</group> 
+	</group>
 
 </launch>
