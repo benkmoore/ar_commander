@@ -106,19 +106,18 @@ class Estimator():
         u_pos = self.vel_cmd
         y_pos = np.array([])
         C_pos = np.empty((0,4))
-        R_pos = np.array([]) 
-                
+        R_list = []
+
         if self.loc_meas1_flag:
             y_pos = np.append(y_pos, self.pos_meas1)
             C_pos = np.vstack((C_pos, np.block([np.eye(2), np.zeros((2, 2))])))
-            R_pos = self.cov_pos_meas1
+            R_list.extend(np.diag(self.cov_pos_meas1))
         if self.loc_meas2_flag:
             y_pos = np.append(y_pos, self.pos_meas2)
             C_pos = np.vstack((C_pos, np.block([np.eye(2), np.zeros((2, 2))])))
-            if R_pos.size == 0: 
-                R_pos = self.cov_pos_meas2               
-            else:
-                R_pos = np.block([[self.cov_pos_meas1, np.zeros((2,2))], [np.zeros((2,2)), self.cov_pos_meas2]])
+            R_list.extend(np.diag(self.cov_pos_meas2))
+
+        R_pos = np.diag(R_list)
 
         return u_pos, y_pos, C_pos, R_pos
 
