@@ -22,7 +22,7 @@ import configs.robot_v1 as rcfg
 
 
 class ActuatorInterface():
-    """ 
+    """
     Actuator interface node
     Handles conversion of controller commands to actuator level.
     Outputs commands to actuators via the 'motor_cmds' message.
@@ -45,15 +45,9 @@ class ActuatorInterface():
 
         # subscribers
         rospy.Subscriber('controller_cmds', ControllerCmd, self.controllerCmdCallback)
-        rospy.Subscriber('estimator/state', State, self.stateCallback)
 
         # publishers
         self.pub_motor_cmds = rospy.Publisher('motor_cmds', MotorCmd, queue_size=10)
-
-
-    def stateCallback(self, msg):
-        self.pos = np.array(msg.pos.data)
-        self.theta = msg.theta.data
 
 
     def controllerCmdCallback(self, msg):
