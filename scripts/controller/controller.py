@@ -180,7 +180,7 @@ class ControlNode():
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
         # map to desired omega (angular velocity) of wheels: w = v/r
-        w_wheel = v_wheel/rcfg.wheel_radius
+        w_wheel = v_wheel#/rcfg.wheel_radius
 
         return w_wheel, phi_cmd
 
