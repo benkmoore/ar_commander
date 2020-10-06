@@ -147,8 +147,6 @@ class ControlNode():
     ## Main Loops
     def controlLoop(self):
         # default behavior
-        self.wheel_w_cmd = np.zeros(rcfg.N)
-        self.wheel_phi_cmd = np.zeros(rcfg.N) # rads
         self.robot_v_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
 

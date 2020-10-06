@@ -86,10 +86,7 @@ class ActuatorInterface():
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
-        # map to desired omega (angular velocity) of wheels: w = v/r
-        w_wheel = v_wheel/rcfg.wheel_radius
-
-        return w_wheel, phi_cmd
+        return v_wheel, phi_cmd
 
 
     def publish(self):
