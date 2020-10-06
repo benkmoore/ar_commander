@@ -4,10 +4,10 @@ import sys
 import rospy
 import numpy as np
 import numpy.linalg as npl
+import scipy.signal as sps
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
-from trajectory_controller import TrajectoryController
 from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
@@ -22,45 +22,45 @@ else:
 
 import configs.robot_v1 as rcfg
 
-class ControlLoops():
-    """Handle the controller loops"""
+class Controller(object):
+    def __init__(self, ctrl_tf):
+        self.num = ctrl_tf['num']
+        self.den = ctrl_tf['den']
 
-    def __init__(self):
-        self.theta_error_sum = 0
-        self.traj_ctrl = TrajectoryController(params.trajectoryControllerTF)
+    def saturateCmds(self, v_cmd):
+        return np.clip(v_cmd, -params.max_vel, params.max_vel)
 
-    def resetController(self):
-        self.theta_error_sum = 0
-
-    ## Controller Functions
-    def thetaController(self, theta_des, theta, omega):
-        kp = params.thetaControllerGains['kp']
-        ki = params.thetaControllerGains['ki']
-        kd = params.thetaControllerGains['kd']
-
-        theta_err = theta_des - theta
-        idx = abs(theta_err) > np.pi
-        theta_err -= 2*np.pi*np.sign(theta_err)*idx
-        theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
-        return theta_dot_cmd
-
-    def pointController(self, pos_des, pos, vel):
-        kp = params.pointControllerGains['kp']
-        kd = params.pointControllerGains['kd']
-
-        p_err = pos_des - pos
-        v_cmd = kp*p_err + kd*vel
-        return v_cmd
-
-    def trajectoryController(self, pos, theta, wp):
-        u = self.traj_ctrl.getControlCmds(np.hstack((pos, theta)), wp)
+    def controllerTF(self, error):
+        u = sps.lfilter(self.num, self.den, error, axis=1).flatten()
         v_cmd = u[0:2]
         omega_cmd = u[2]
 
-        # saturate v_cmd
-        v_cmd = np.clip(v_cmd, -params.max_vel, params.max_vel)
+        return v_cmd, omega_cmd
+
+
+class PointController(Controller):
+    def __init__(self, ctrl_tf):
+        super(PointController, self).__init__(ctrl_tf)
+
+    def getControlCmds(self, pos, theta, wp):
+        error = (wp-np.hstack((pos, theta))).reshape((-1,1))
+        v_cmd, omega_cmd = self.controllerTF(error)
+        v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
 
         return v_cmd, omega_cmd
+
+
+class TrajectoryController(Controller):
+    def __init__(self, ctrl_tf):
+        super(TrajectoryController, self).__init__(ctrl_tf)
+
+    def getControlCmds(self, pos, theta, vel, wp):
+        error = (wp-np.hstack((pos, theta))).reshape((-1,1))
+        v_cmd, omega_cmd = self.controllerTF(error)
+        v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
+
+        return v_cmd, omega_cmd
+
 
 class ControlNode():
     """
@@ -86,7 +86,8 @@ class ControlNode():
         self.traj_idx = 0
 
         # initialize controllers
-        self.controllers = ControlLoops()
+        self.pointController = PointController(params.pointControllerTF)
+        self.trajectoryController = TrajectoryController(params.trajectoryControllerTF)
 
         # output commands
         self.wheel_phi_cmd = None
@@ -109,7 +110,6 @@ class ControlNode():
     def trajectoryCallback(self, msg):
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
         self.traj_idx = 0
-        self.controllers.resetController()
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
@@ -187,10 +187,9 @@ class ControlNode():
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.controllers.trajectoryController(self.pos, self.theta, wp)
+                v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, wp)
             else:
-                v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
-                w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
+                v_des, w_des = self.pointController.getControlCmds(self.pos, self.theta, wp)
                 self.last_waypoint_flag = True
 
             self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)

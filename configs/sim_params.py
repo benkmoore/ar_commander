@@ -8,9 +8,7 @@ wp_threshold = 0.25                        # distance threshold at which we tran
 
 theta_threshold = np.pi/8				   # robot theta threshold at which we transition to next waypoint (rad)
 
-thetaControllerGains = {'kp':3, 'ki':0.03, 'kd':5e-2}
-
-pointControllerGains = {'kp':0.5, 'kd':0}
+pointControllerTF = {'num': np.array([ 0.63238478, -0.63175271]), 'den': np.array([ 1.        , -1.36724737,  0.36787944])}
 
 trajectoryControllerTF = {'num': np.array([ 0.63238478, -0.63175271]), 'den': np.array([ 1.        , -1.36724737,  0.36787944])}
 
