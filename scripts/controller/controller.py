@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 import rospy
 import numpy as np
 import numpy.linalg as npl
-
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State

@@ -2,9 +2,6 @@
 
 import numpy as np
 import rospy
-import sys
-
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory

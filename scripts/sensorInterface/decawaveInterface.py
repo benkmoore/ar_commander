@@ -2,13 +2,10 @@
 import serial
 import time
 import re
-import sys
 import rospy
 import numpy as np
 import collections
 from ar_commander.msg import Decawave
-
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 import configs.hardware_params as params
 
@@ -135,10 +132,10 @@ class GetPose():
     def calculateCovs(self):
         """
         Calculate measurement covariances.
-        
+
         Uses decawave hardware param, standard deviation on position measurement and the outputted confidence in the
-        measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from 
-        each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
+        measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from
+        each sensor to find a covariance for the theta measurement with a linear combination. The derivates are
         derived from the heading calculation, the formula relates robot heading to sensor measurements.
         """
         self.cov_pos1 = (self.pos_meas_std**2)*np.eye(2)

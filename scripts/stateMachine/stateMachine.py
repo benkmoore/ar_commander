@@ -9,7 +9,6 @@ from enum import Enum
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
 
@@ -122,7 +121,6 @@ class StateMachine():
 
 if __name__ == '__main__':
     env = rospy.get_param("ENV")
-    sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
     if env == "sim":
         import configs.sim_params as params
     elif env == "hardware":
