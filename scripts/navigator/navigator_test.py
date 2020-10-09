@@ -33,8 +33,8 @@ class Navigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 [2.5,2.5,0],
-                #[2.5,0,0],
-                #[2.5,2.5,0],
+                [2.5,1,0],
+                [2.5,2.5,0],
                 #[1.5,2.5,0],
                 #[1.5,0,0]
                 ])

@@ -40,7 +40,7 @@ from ar_commander.msg import Decawave, State, ControllerCmd
 from std_msgs.msg import Int8
 
 RATE = 3 # display rate
-DECIMALS = 1
+DECIMALS = 2
 
 
 

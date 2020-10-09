@@ -181,7 +181,10 @@ class ControlNode():
 
         # map to desired omega (angular velocity) of wheels: w = v/r
         w_wheel = v_wheel#/rcfg.wheel_radius
-
+        
+        idxs = abs(phi_diff) < 0.05
+        phi_cmd[idxs] = self.phi_prev[idxs]
+        
         return w_wheel, phi_cmd
 
     ## Main Loops
