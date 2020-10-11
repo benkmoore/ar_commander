@@ -5,20 +5,11 @@ import numpy.linalg as npl
 import rospy
 import sys
 
-from localization_filter import LocalizationFilter
-from ar_commander.msg import State, ControllerCmd, Decawave
-
-env = rospy.get_param("ENV")
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
-if env == "sim":
-    import configs.sim_params as params
-elif env == "hardware":
-    import configs.hardware_params as params
-else:
-    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-
-import configs.robot_v1 as rcfg
+from configs.robotConfig import robotConfig
+from localization_filter import LocalizationFilter
+from ar_commander.msg import State, ControllerCmd, Decawave
 
 RATE = 10
 
@@ -27,6 +18,9 @@ class Estimator():
 
     def __init__(self):
         rospy.init_node('estimator')
+
+        # retrieve params
+        self.rcfg = robotConfig()
 
         # timestep
         self.dt = 1. / RATE
@@ -74,10 +68,10 @@ class Estimator():
 
         # transform pos_meas to center corner of robot
         tf_angle = self.state.theta.data if self.state is not None else self.theta_meas
-        self.pos_meas1 = np.array([msg.x1.data+rcfg.L*np.sin(tf_angle),
-                                    msg.y1.data-rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
-        self.pos_meas2 = np.array([msg.x2.data-rcfg.L*np.cos(tf_angle),
-                                    msg.y2.data-rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
+        self.pos_meas1 = np.array([msg.x1.data+self.rcfg.L*np.sin(tf_angle),
+                                    msg.y1.data-self.rcfg.L*np.cos(tf_angle)]) # sensor on robot Y axis arm
+        self.pos_meas2 = np.array([msg.x2.data-self.rcfg.L*np.cos(tf_angle),
+                                    msg.y2.data-self.rcfg.L*np.sin(tf_angle)]) # sensor on robot X axis arm
         self.cov_pos_meas1 = np.reshape(msg.cov1.data, (2,2))
         self.cov_pos_meas2 = np.reshape(msg.cov2.data, (2,2))
 
@@ -87,7 +81,8 @@ class Estimator():
         A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2,2))]])
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
         C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
-        Q_pos = np.block([[params.positionFilterParams['Q'], np.zeros((2,2))], [np.zeros((2,2)), params.positionFilterParams['Q_d']]])
+        Q_pos = np.block([[rospy.get_param("positionFilterParams/Q")*np.eye(2), np.zeros((2,2))],
+                          [np.zeros((2,2)), rospy.get_param("positionFilterParams/Q_d")*np.eye(2)]])
         self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos)
 
 
@@ -97,7 +92,8 @@ class Estimator():
         A_theta = np.array([[1, 0], [0, 0]])
         B_theta = np.array([[self.dt],[1]])
         C_theta = np.array([1, 0]).reshape(1,2)
-        Q_theta = np.array([[params.thetaFilterParams['Q'], 0], [0, params.thetaFilterParams['Q_d']]])
+        Q_theta = np.array([[rospy.get_param("thetaFilterParams/Q"), 0],
+                            [0, rospy.get_param("thetaFilterParams/Q_d")]])
         self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, is_angle=True)
 
 

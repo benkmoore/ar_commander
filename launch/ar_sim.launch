@@ -3,8 +3,9 @@
     <include file="$(find ar_sim)/launch/world.launch"/>
 
     <group ns="robot1">
-        <!-- Set enviroment variable to sim -->
-        <param name="ENV" value="sim" />
+        <!-- load params -->
+        <rosparam command="load" file="$(find ar_commander)/configs/sim_params.yaml"/>
+        <rosparam command="load" file="$(find ar_commander)/configs/robot_v1.yaml"/>
 
         <!-- Set path to ar repos -->
         <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
