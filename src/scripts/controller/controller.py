@@ -4,9 +4,9 @@ import rospy
 import numpy as np
 import numpy.linalg as npl
 
-from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
+from scripts.stateMachine.stateMachine import Mode
 
 env = rospy.get_param("ENV")
 if env == "sim":
