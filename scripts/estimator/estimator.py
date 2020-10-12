@@ -42,6 +42,9 @@ class Estimator():
         # new decawave measurement flag
         self.decawave_flag = False
 
+        # controller initialized
+        self.controller_flag = False
+
         # controller cmds
         self.vel_cmd = None
         self.omega_cmd = None
@@ -62,6 +65,8 @@ class Estimator():
 
 
     def controllerCmdCallback(self, msg):
+        self.controller_flag = True
+
         self.vel_cmd = np.array(msg.robot_vel.data)
         self.omega_cmd = msg.robot_omega.data
 
@@ -129,13 +134,14 @@ class Estimator():
             else: # no new measurement
                 y_pos = R_pos = y_theta = R_theta = None
 
-            self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos)
-            self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta)
+            if self.controller_flag: # check controller is initialized
+                self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos)
+                self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta)
 
-            self.state.pos.data = self.pos_state[0:2]
-            self.state.vel.data = self.pos_state[2:4]
-            self.state.theta.data = self.theta_state[0]
-            self.state.omega.data = self.theta_state[1]
+                self.state.pos.data = self.pos_state[0:2]
+                self.state.vel.data = self.pos_state[2:4]
+                self.state.theta.data = self.theta_state[0]
+                self.state.omega.data = self.theta_state[1]
 
             self.decawave_flag = False # reset decawave measurement flag
 
