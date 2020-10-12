@@ -4,7 +4,7 @@ CONTROLLER_RATE = 10                       # rate in Hz
 
 max_vel = 3                                # m/s
 
-wp_threshold = 0.5                        # distance threshold at which we transition to next waypoint (m)
+wp_threshold = 0.25                        # distance threshold at which we transition to next waypoint (m)
 
 theta_threshold = np.pi/8				   # robot theta threshold at which we transition to next waypoint (rad)
 
