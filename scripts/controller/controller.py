@@ -2,9 +2,11 @@
 
 import sys
 import rospy
+import time
 import numpy as np
 import numpy.linalg as npl
 import scipy.signal as sps
+import scipy.interpolate as spi
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
@@ -47,7 +49,7 @@ class PointController(Controller):
         super(PointController, self).__init__(ctrl_tf)
 
     def getControlCmds(self, pos, theta, wp):
-        error = (wp-np.hstack((pos, theta))).reshape((-1,1))
+        error = (wp[:-1]-np.hstack((pos, theta))).reshape((-1,1))
         v_cmd, omega_cmd = self.controllerTF(error)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
 
@@ -58,8 +60,20 @@ class TrajectoryController(Controller):
     def __init__(self, ctrl_tf):
         super(TrajectoryController, self).__init__(ctrl_tf)
 
-    def getControlCmds(self, pos, theta, vel, wp):
-        error = (wp-np.hstack((pos, theta))).reshape((-1,1))
+    def fitSpline2Trajectory(self, trajectory):
+        x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
+        self.x_spline = spi.UnivariateSpline(t, x) # output: x_des, input: t
+        self.y_spline = spi.UnivariateSpline(t, y) # output: y_des, input: t
+        self.theta_spline = spi.UnivariateSpline(t, theta) # output: theta_des, input: t
+
+        self.init_traj_time = time.time()
+
+    def getControlCmds(self, pos, theta, vel):
+        t = time.time() - self.init_traj_time
+        state_des = np.array([self.x_spline(t), self.y_spline(t), self.theta_spline(t)])
+        state_curr = np.hstack((pos, theta))
+        error = (state_des-state_curr).reshape((-1,1))
+
         v_cmd, omega_cmd = self.controllerTF(error)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
 
@@ -112,7 +126,8 @@ class ControlNode():
 
     ## Callback Functions
     def trajectoryCallback(self, msg):
-        self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
+        self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data,msg.t.data]).T
+        self.trajectoryController.fitSpline2Trajectory(self.trajectory)
         self.traj_idx = 0
 
     def stateCallback(self, msg):
@@ -134,7 +149,6 @@ class ControlNode():
             if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1:
                 self.traj_idx += 1
                 wp = self.trajectory[self.traj_idx, :]
-
             if self.traj_idx == 0:
                 wp_prev = np.hstack([self.pos, self.theta])
             else:
@@ -191,7 +205,7 @@ class ControlNode():
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, wp)
+                v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel)
             else:
                 v_des, w_des = self.pointController.getControlCmds(self.pos, self.theta, wp)
                 self.last_waypoint_flag = True
