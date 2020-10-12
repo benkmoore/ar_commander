@@ -13,17 +13,6 @@ import sys
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
 
-env = rospy.get_param("ENV")
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
-if env == "sim":
-    import configs.sim_params as params
-elif env == "hardware":
-    import configs.hardware_params as params
-else:
-    raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-
-
-
 RATE = 10
 INIT_TIME = 5   # Minimum time to remain in init mode
 
@@ -130,6 +119,14 @@ class StateMachine():
             rate.sleep()
 
 if __name__ == '__main__':
+    env = rospy.get_param("ENV")
+    sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+    if env == "sim":
+        import configs.sim_params as params
+    elif env == "hardware":
+        import configs.hardware_params as params
+    else:
+        raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
     state_machine = StateMachine()
     state_machine.run()
 

@@ -8,7 +8,6 @@ import scipy.signal as sps
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
-from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
 
@@ -20,20 +19,25 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
+from scripts.stateMachine.stateMachine import Mode
 import configs.robot_v1 as rcfg
 
 class Controller(object):
     def __init__(self, ctrl_tf):
         self.num = ctrl_tf['num']
         self.den = ctrl_tf['den']
+        self.z = None
 
     def saturateCmds(self, v_cmd):
         return np.clip(v_cmd, -params.max_vel, params.max_vel)
 
     def controllerTF(self, error):
-        u = sps.lfilter(self.num, self.den, error, axis=1).flatten()
-        v_cmd = u[0:2]
-        omega_cmd = u[2]
+        if self.z is None:
+            self.z = sps.lfiltic(self.num, self.den, y=np.zeros_like(self.den)) # initial filter delays
+            self.z = np.tile(self.z, error.shape)
+        u, self.z = sps.lfilter(self.num, self.den, error, axis=1, zi=self.z)
+        v_cmd = u[0:2, 0]
+        omega_cmd = u[2, 0]
 
         return v_cmd, omega_cmd
 
