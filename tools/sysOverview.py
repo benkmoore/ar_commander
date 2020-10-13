@@ -77,8 +77,8 @@ class Logger():
                 pos_data.append(self.robots[robot_id].state_pos)
             if self.robots[robot_id].state_theta is not None:
                 state_theta_data.append(self.robots[robot_id].state_theta)
-            if self.robots[robot_id].state_theta is not None:
-                meas_theta_data.append(self.robots[robot_id].state_theta)
+            if self.robots[robot_id].theta is not None:
+                meas_theta_data.append(self.robots[robot_id].theta)
             if self.robots[robot_id].state_vel is not None:
                 vel_data.append(self.robots[robot_id].state_vel)
             if self.robots[robot_id].state_omega is not None:

@@ -16,9 +16,9 @@ trajectoryControllerGains = {'kp_pos':0.2, 'kp_th':0.1, 'kd_pos':0.5, 'k_ol':0}
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise
-positionFilterParams = {"Q": 0.8 * np.eye(2), "Q_d": 0.8 * np.eye(2)}
+positionFilterParams = {"Q": 0.001 * np.eye(2), "Q_d": 0.001 * np.eye(2)}
 
-thetaFilterParams = {"Q": 1.5, "Q_d": 1.5}
+thetaFilterParams = {"Q": 0.001, "Q_d": 0.001}
 
 pos_measurement_std = 0.035                # position measurement standard deviation (m)
 
