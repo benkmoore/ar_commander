@@ -62,9 +62,9 @@ class TrajectoryController(Controller):
 
     def fitSpline2Trajectory(self, trajectory):
         x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
-        self.x_spline = spi.UnivariateSpline(t, x) # output: x_des, input: t
-        self.y_spline = spi.UnivariateSpline(t, y) # output: y_des, input: t
-        self.theta_spline = spi.UnivariateSpline(t, theta) # output: theta_des, input: t
+        self.x_spline = spi.UnivariateSpline(t, x, s=0) # output: x_des, input: t
+        self.y_spline = spi.UnivariateSpline(t, y, s=0) # output: y_des, input: t
+        self.theta_spline = spi.UnivariateSpline(t, theta, s=0) # output: theta_des, input: t
 
         self.init_traj_time = time.time()
 

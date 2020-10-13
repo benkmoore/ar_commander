@@ -28,24 +28,25 @@ class Navigator():
         self.mode = Mode(msg.data)
 
     def loadTrajectory(self):
-        traj_id = 1  # specify what trajectory we want to use
+        traj_id = 1 # specify what trajectory we want to use
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 [0,0,0,0],
-                [1,0,0,1],
-                [1,1,0,2],
-                [0,1,0,3],
-                [0,0,0,4]
+                [1,0,0,2],
+                [1,1,0,4],
+                [0,1,0,6],
+                [0,0,0,8]
                 ])
         elif traj_id == 2: # circle
-            t = np.linspace(0,2*np.pi, 20)[:, np.newaxis]
-            time = np.linspace(1, 10, 20)
+            num_pts = 20
+            t = np.linspace(0,2*np.pi, num_pts)[:, np.newaxis]
+            time = np.linspace(1, 30, num_pts)[:, np.newaxis]
             self.trajectory = np.hstack([np.sin(t), np.cos(t), t, time])
         elif traj_id == 3: # sine wave
             num_pts = 100
             t = np.linspace(0.1, 5.0, num_pts)[:, np.newaxis]
-            time = np.linspace(1, 10, num_pts)[:, np.newaxis]
+            time = np.linspace(1, 20, num_pts)[:, np.newaxis]
             s = np.sin(np.pi * t)
             self.trajectory = np.hstack([t, s, np.zeros(t.shape), time])
         elif traj_id == 4: # figure of eight
@@ -53,16 +54,20 @@ class Navigator():
             a = 3
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
-            time = np.linspace(1, 10, 20)[:, np.newaxis]
+            time = np.linspace(1, 40, 20)[:, np.newaxis]
             self.trajectory = np.hstack([x, y, t, time])
         elif traj_id == 5: # rotate on spot
-            t = np.linspace(0,2*np.pi, 20)[:, np.newaxis]
-            time = np.linspace(1, 10, 20)[:, np.newaxis]
+            num_pts = 20
+            t = np.linspace(0,2*np.pi, num_pts)[:, np.newaxis]
+            time = np.linspace(1, 10, num_pts)[:, np.newaxis]
             self.trajectory = np.hstack([np.zeros(t.shape), np.zeros(t.shape), t, time])
         elif traj_id == 6: # rotate along line
-            t = np.linspace(0,-2*np.pi,10)[:, np.newaxis]
-            Y = np.linspace(0,10, 10)[:, np.newaxis]
-            self.trajectory = np.hstack([np.zeros(t.shape), Y, t, t])
+            num_pts = 20
+            time = np.linspace(0, 20, num_pts)[:, np.newaxis]
+            t = np.linspace(0,-2*np.pi, num_pts)[:, np.newaxis]
+            y = np.linspace(0,10, num_pts)[:, np.newaxis]
+            x = np.zeros(t.shape)
+            self.trajectory = np.hstack([x, y, t, time])
         else:
             raise ValueError("Invalid traj_id")
 
