@@ -12,7 +12,10 @@ pointControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'den': n
 
 trajectoryControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'den': np.array([ 1., -1.97219114,  0.97238837])}
 
-# noise/uncertainty estimate on predict (Q) meas. (R) process and derivatives (d)
-positionFilterParams = {'Q':10*np.eye(2), 'Q_d':100*np.eye(2), 'R':0.01*np.eye(2), 'R_d':np.eye(2)}
+# filter params obtained from data and testing at: AR1-142
+# Q : covariance on the process noise
+positionFilterParams = {"Q": 0.8 * np.eye(2), "Q_d": 0.8 * np.eye(2)}
 
-thetaFilterParams = {'Q':10, 'Q_d':100, 'R':0.01}
+thetaFilterParams = {"Q": 0.1, "Q_d": 0.1}
+
+pos_measurement_std = 0.035 # position measurement standard deviation (m)

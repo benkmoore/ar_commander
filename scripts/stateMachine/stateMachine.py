@@ -16,11 +16,13 @@ from std_msgs.msg import Int8, Bool
 RATE = 10
 INIT_TIME = 5   # Minimum time to remain in init mode
 
+
 class Mode(Enum):
     """State machine modes"""
     INIT         = 0
     IDLE         = 1
     TRAJECTORY   = 2
+
 
 class StateMachine():
     def __init__(self):
@@ -127,6 +129,7 @@ if __name__ == '__main__':
         import configs.hardware_params as params
     else:
         raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
+
     state_machine = StateMachine()
     state_machine.run()
 
