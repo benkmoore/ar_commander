@@ -1,6 +1,6 @@
 <launch>
     <!-- Create world -->
-    <include file="$(find ar_sim)/launch/world.launch"/>
+    <!-- <include file="$(find ar_sim)/launch/world.launch"/> -->
 
     <group ns="robot1">
         <!-- Set enviroment variable to sim -->
@@ -11,12 +11,17 @@
         <param name="AR_SIM_DIR" value="$(find ar_sim)" />
 
         <!-- launch ar_sim -->
-        <include file="$(find ar_sim)/launch/gazebo_sim.launch" >
+        <!-- <include file="$(find ar_sim)/launch/gazebo_sim.launch" >
             <arg name="robot_id" value="robot1" />
             <arg name="init_pose" value="-x 0 -y 0 -z 0" />
-        </include>
+        </include> -->
 
         <!-- launch ar_commander -->
         <include file="$(find ar_commander)/launch/autonomy_stack.launch" />
+
+
+        <!-- launch detector and TOF interface -->
+        <node pkg="ar_commander" type="detector.py" name="Detector" output="screen" />
+        <node pkg="ar_commander" type="tofInterface.py" name="TOFInterface" output="screen" />
     </group>
 </launch>

@@ -3,16 +3,14 @@
 import rospy
 import numpy as np
 import sys
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-fig = plt.figure()
-ax1 = fig.add_subplot(1,1,1)
 import rospkg
 
 sys.path.append(rospkg.RosPack().get_path('ar_commander'))
 import configs.robot_v1 as rcfg
 
 from ar_commander.msg import TOF, State, Object
+
+RATE = 10
 
 
 class TOFInterface():
@@ -22,31 +20,31 @@ class TOFInterface():
         self.tof_data = None
         self.transformed_data = None
 
-        self.pos = np.zeros(2)
-        self.vel = np.zeros(2)
-        self.theta = 0
+        self.pos = None
+        self.vel = None
+        self.theta = None
         self.omega = None
-        self.state_flag = False
 
         # subscribers
         rospy.Subscriber('sensor/tof_data', TOF, self.tofCallback)
         rospy.Subscriber('estimator/state', State, self.stateCallback)
 
         # publishers
-        self.pub_mode = rospy.Publisher('object', Object, queue_size=10)
+        self.pub_tof_data = rospy.Publisher('transformed/tof_data', TOF, self.tofCallback)
 
     def tofCallback(self, msg):
         self.tof_data = np.array([msg.tof1, msg.tof2, msg.tof3])
+        self.transformTOFData()
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
         self.vel = np.array(msg.vel.data)
         self.theta = msg.theta.data
         self.omega = msg.omega.data
-        self.state_flag = True
 
-    def getSensorData(self):
-        if self.tof_data is not None:
+    ## Helper functions
+    def transformTOFData(self):
+        if self.tof_data is not None and self.pos is not None:
             d1 = np.sqrt(rcfg.L**2 + self.tof_data[0]**2)
             a1 = np.arctan(rcfg.L/self.tof_data[0])
             p1_x = self.pos[0] + d1*np.cos(a1 + self.theta)
@@ -61,19 +59,19 @@ class TOFInterface():
             p3_x = self.pos[0] - d3*np.cos(a3 + (np.pi/2) - self.theta)
             p3_y = self.pos[1] + d3*np.sin(a3 + (np.pi/2) - self.theta)
 
-            self.transformed_data = np.array([[p1_x, p1_y], [p2_x, p2_y], [p3_x, p3_y]])
+            self.transformed_pts = np.array([[p1_x, p1_y], [p2_x, p2_y], [p3_x, p3_y]])
 
-    def animate(self):
-        ax1.clear()
-        ax1.scatter(self.transformed_data[:,0], self.transformed_data[:,1])
-        plt.pause(0.05)
+    ## Process functions
+    def publish(self):
+        if self.transformed_pts is not None:
+            self.tof_msg = TOF()
+            self.tof_msg.data = self.transformed_pts
+            self.pub_tof_data.publish(self.tof_msg.data)
 
     def run(self):
-        rate = rospy.Rate(10)
+        rate = rospy.Rate(RATE)
         while not rospy.is_shutdown():
-            self.getSensorData()
-            if self.transformed_data is not None:
-                self.animate()
+            self.publish()
             rate.sleep()
 
 

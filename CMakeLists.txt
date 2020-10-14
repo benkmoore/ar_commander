@@ -55,6 +55,8 @@ add_message_files(
     ControllerCmd.msg
     TOF.msg
     Decawave.msg
+    Task.msg
+    Object.msg
 )
 
 ## Generate services in the 'srv' folder
