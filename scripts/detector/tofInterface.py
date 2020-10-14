@@ -12,7 +12,7 @@ import rospkg
 sys.path.append(rospkg.RosPack().get_path('ar_commander'))
 import configs.robot_v1 as rcfg
 
-from ar_commander.msg import TOF, State
+from ar_commander.msg import TOF, State, Object
 
 
 class TOFInterface():
@@ -28,8 +28,12 @@ class TOFInterface():
         self.omega = None
         self.state_flag = False
 
-        rospy.Subscriber('/robot1/sensor/tof_data', TOF, self.tofCallback)
-        rospy.Subscriber('/robot1/estimator/state', State, self.stateCallback)
+        # subscribers
+        rospy.Subscriber('sensor/tof_data', TOF, self.tofCallback)
+        rospy.Subscriber('estimator/state', State, self.stateCallback)
+
+        # publishers
+        self.pub_mode = rospy.Publisher('object', Object, queue_size=10)
 
     def tofCallback(self, msg):
         self.tof_data = np.array([msg.tof1, msg.tof2, msg.tof3])

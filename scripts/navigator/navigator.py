@@ -9,36 +9,45 @@ sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from astar import AStar, DetOccupancyGrid2D
 from scripts.stateMachine.stateMachine import Mode
-from ar_commander.msg import Trajectory, State
-from std_msgs.msg import Int8
+from ar_commander.msg import Trajectory, State, Task, Object
+from std_msgs.msg import Int8, Pose2D
 
 
 class Navigator():
     def __init__(self):
         rospy.init_node('navigator')
 
-        self.trajectory_published = False
         self.map_width = 10
         self.map_height = 10
-        self.obstacles = [((6,6),(8,7)),((2,0),(8,2)),((2,4),(4,6)),((6,2),(8,4))]
+        self.obstacles = []
 
         self.start_pos = (None, None)
-        self.end_pos = (8.0,8.0)
+        self.end_pos = (None, None)
+        self.end_theta = None
         self.pos = np.array([None, None])
         self.theta = None
         self.mode = None
 
         self.trajectory = None
+        self.task_pos = None
+        self.object = None
 
+        self.new_pt_flag = False
+        self.new_task_flag = False
+        self.new_object_flag = False
+        self.trajectory_published = False
 
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('cmd_pt', Pose2D, self.cmdPtCallback)
+        rospy.Subscriber('task', Task, self.taskCallback)
+        rospy.Subscriber('object', Object, self.objectCallback)
 
         # publishers
         self.pub_trajectory = rospy.Publisher('cmd_trajectory', Trajectory, queue_size=10)
 
-
+    ## Callback functions
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
         self.theta = msg.theta.data
@@ -48,9 +57,31 @@ class Navigator():
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
 
+    def cmdPtCallback(self,msg):
+        self.new_pt_flag = True
+        self.end_pos = (msg.x, msg.y)
+        self.end_theta = msg.theta
+
+    def taskCallback(self,msg):
+        self.new_task_flag = True
+        self.end_pos = (msg.x.data, msg.y.data)
+
+    def objectCallback(self,msg):
+        self.new_object_flag = True
+        self.end_pos, self.end_theta = getObjectInfo(msg.corners.data.reshape(-1,2))
+
+    ## Helper functions
+    def getObjectInfo(self, object_corners):
+        idx_min = np.sqrt((corners[0,:]-self.pos[0])**2 + (corners[1,:]-self.pos[1])**2).argmin()
+        closest_corner = object_corners[idx_min]
+        object_orientation = #TODO:check with Byron on the output of detector
+
+        return closest_corner, object_orientation
+
+    ## Path planners
     def callAstar(self):
         occupancy = DetOccupancyGrid2D(self.map_width, self.map_height, self.obstacles)
-        self.astar = AStar((0, 0), (self.map_width, self.map_height), self.start_pos, self.end_pos, occupancy)
+        self.astar = AStar((-self.map_width, -self.map_height), (self.map_width, self.map_height), self.start_pos, self.end_pos, occupancy)
 
         if not self.astar.solve():
             exit(0)
@@ -58,19 +89,39 @@ class Navigator():
         self.trajectory = Trajectory()
         self.trajectory.x.data = (self.astar.path*self.astar.resolution)[:,0]
         self.trajectory.y.data = (self.astar.path*self.astar.resolution)[:,1]
-        self.trajectory.theta.data = np.zeros((len(self.trajectory.x.data),1))
+        if self.mode == MODE.SEARCH:
+            self.trajectory.theta.data = np.zeros((len(self.trajectory.x.data),1))
+        else:
+            self.trajectory.theta.data = np.vstack((np.zeros((len(self.trajectory.x.data)-1,1)), self.end_theta))
         #astar.plot_path()
 
+    ## Process functions
     def publish(self):
-        self.pub_trajectory.publish(self.trajectory)
-        self.trajectory_published = True
+        if self.trajectory is not None:
+            self.pub_trajectory.publish(self.trajectory)
+            self.trajectory = None
 
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
-        while not rospy.is_shutdown() and not self.trajectory_published:
-            if self.mode == Mode.IDLE:
+        while not rospy.is_shutdown():
+
+            if any([self.new_pt_flag, self.new_task_flag, self.new_object_flag]):
                 self.callAstar()
-                self.publish()
+
+
+            if self.new_pt_flag:
+                self.callAstar()
+                self.new_pt_flag = False
+
+            elif self.new_task_flag:
+                self.callAstar()
+                self.new_task_flag = False
+
+            elif self.new_object_flag:
+                self.callAstar()
+                self.new_object_flag = False
+
+            self.publish()
             rate.sleep()
 
 if __name__ == '__main__':

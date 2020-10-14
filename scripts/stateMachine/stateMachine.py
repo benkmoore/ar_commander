@@ -10,7 +10,7 @@ import numpy as np
 import numpy.linalg as npl
 import rospy
 import sys
-from ar_commander.msg import State, Trajectory
+from ar_commander.msg import State, Trajectory, Task, Object
 from std_msgs.msg import Int8, Bool
 
 RATE = 10
@@ -22,6 +22,7 @@ class Mode(Enum):
     INIT         = 0
     IDLE         = 1
     TRAJECTORY   = 2
+    SEARCH       = 3
 
 
 class StateMachine():
@@ -36,19 +37,25 @@ class StateMachine():
 
         self.new_traj_flag = False
         self.last_wp_flag = False
+        self.new_task_flag = False
+        self.new_object_flag = False
 
         self.pos = None
         self.theta = None
+
+        self.task_pos = None
 
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
         rospy.Subscriber('controller/last_waypoint_flag', Bool, self.lastWpCallback)
+        rospy.Subscriber('task', Task, self.taskCallback)
+        rospy.Subscriber('object', Object, self.objectCallback)
 
         # publishers
         self.pub_mode = rospy.Publisher('state_machine/mode', Int8, queue_size=10)
 
-    ## Callbak functions
+    ## Callback functions
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
         self.vel = np.array(msg.vel.data)
@@ -60,6 +67,12 @@ class StateMachine():
 
     def lastWpCallback(self,msg):
         self.last_wp_flag = msg.data
+
+    def taskCallback(self,msg):
+        self.new_task_flag = True
+
+    def objectCallback(self,msg):
+        self.new_object_flag = True
 
     ## Decision Fuctions
     def hasInitialized(self):
@@ -86,6 +99,18 @@ class StateMachine():
             return True
         return False
 
+    def newTaskReceived(self):
+        if self.new_task_flag:
+            self.new_task_flag = False
+            return True
+        return False
+
+    def objectDetected(self):
+        if self.new_object_flag:
+            self.new_object_flag = False
+            return True
+        return False
+
     ## Main loop for FSM
     def determineMode(self):
         """ main state machine function """
@@ -101,12 +126,18 @@ class StateMachine():
         elif self.mode == Mode.IDLE:
             if self.newTrajectoryReceived():
                 self.mode = Mode.TRAJECTORY
+            elif self.newTaskReceived():
+                self.mode = Mode.SEARCH
 
         elif self.mode == Mode.TRAJECTORY:
             if self.trajectoryFinished():
                 self.mode = Mode.IDLE
 
-    ## Process Functinos
+        elif self.mode == Mode.SEARCH:
+            if self.objectDetected():
+                self.mode = Mode.TRAJECTORY
+
+    ## Process Functions
     def publish(self):
         """ publish the fsm mode """
         msg = Int8()
