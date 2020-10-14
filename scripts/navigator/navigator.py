@@ -71,10 +71,10 @@ class Navigator():
         self.end_pos, self.end_theta = getObjectInfo(msg.corners.data.reshape(-1,2))
 
     ## Helper functions
-    def getObjectInfo(self, object_corners):
+    def getObjectInfo(self, corners):
         idx_min = np.sqrt((corners[0,:]-self.pos[0])**2 + (corners[1,:]-self.pos[1])**2).argmin()
-        closest_corner = object_corners[idx_min]
-        object_orientation = #TODO:check with Byron on the output of detector
+        closest_corner = corners[idx_min]
+        object_orientation = np.arctan2(corners[2,1]-corners[2,0], corners[0,1]-corners[0,0]) #TODO:check with Byron on the output of detector
 
         return closest_corner, object_orientation
 
@@ -89,8 +89,8 @@ class Navigator():
         self.trajectory = Trajectory()
         self.trajectory.x.data = (self.astar.path*self.astar.resolution)[:,0]
         self.trajectory.y.data = (self.astar.path*self.astar.resolution)[:,1]
-        if self.mode == MODE.SEARCH:
-            self.trajectory.theta.data = np.zeros((len(self.trajectory.x.data),1))
+        if self.mode == MODE.SEARCH: # THINK
+            self.trajectory.theta.data = np.zeros((len(self.trajectory.x.data),1)) #TODO change
         else:
             self.trajectory.theta.data = np.vstack((np.zeros((len(self.trajectory.x.data)-1,1)), self.end_theta))
         #astar.plot_path()
@@ -108,17 +108,11 @@ class Navigator():
             if any([self.new_pt_flag, self.new_task_flag, self.new_object_flag]):
                 self.callAstar()
 
-
             if self.new_pt_flag:
-                self.callAstar()
                 self.new_pt_flag = False
-
-            elif self.new_task_flag:
-                self.callAstar()
+            if self.new_task_flag:
                 self.new_task_flag = False
-
-            elif self.new_object_flag:
-                self.callAstar()
+            if self.new_object_flag:
                 self.new_object_flag = False
 
             self.publish()
