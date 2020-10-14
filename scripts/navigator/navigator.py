@@ -12,6 +12,8 @@ from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, State, Task, Object
 from std_msgs.msg import Int8, Pose2D
 
+SEARCH_ANGLE = np.deg2rad(60.0) # search angle either side of trajectory line
+
 
 class Navigator():
     def __init__(self):
@@ -62,13 +64,13 @@ class Navigator():
         self.end_pos = (msg.x, msg.y)
         self.end_theta = msg.theta
 
-    def taskCallback(self,msg):
-        self.new_task_flag = True
-        self.end_pos = (msg.x.data, msg.y.data)
-
     def objectCallback(self,msg):
         self.new_object_flag = True
         self.end_pos, self.end_theta = getObjectInfo(msg.corners.data.reshape(-1,2))
+
+    def taskCallback(self,msg):
+        self.new_task_flag = True
+        self.end_pos = (msg.x.data, msg.y.data)
 
     ## Helper functions
     def getObjectInfo(self, corners):
@@ -89,8 +91,8 @@ class Navigator():
         self.trajectory = Trajectory()
         self.trajectory.x.data = (self.astar.path*self.astar.resolution)[:,0]
         self.trajectory.y.data = (self.astar.path*self.astar.resolution)[:,1]
-        if self.mode == MODE.SEARCH: # THINK
-            self.trajectory.theta.data = np.zeros((len(self.trajectory.x.data),1)) #TODO change
+        if self.new_task_flag: # search behaviour
+            self.trajectory.theta.data = SEARCH_ANGLE*np.sin(self.trajectory.x.data)
         else:
             self.trajectory.theta.data = np.vstack((np.zeros((len(self.trajectory.x.data)-1,1)), self.end_theta))
         #astar.plot_path()
@@ -105,15 +107,17 @@ class Navigator():
         rate = rospy.Rate(10) # 10 Hz
         while not rospy.is_shutdown():
 
-            if any([self.new_pt_flag, self.new_task_flag, self.new_object_flag]):
+            if self.mode == MODE.IDLE and self.new_pt_flag: # nav to point
                 self.callAstar()
-
-            if self.new_pt_flag:
                 self.new_pt_flag = False
-            if self.new_task_flag:
-                self.new_task_flag = False
-            if self.new_object_flag:
+
+            elif self.mode == MODE.TRAJECTORY and self.new_object_flag: # nav to object corner
+                self.callAstar()
                 self.new_object_flag = False
+
+            elif self.mode == MODE.IDLE and self.new_task_flag: # nav search for assigned task
+                self.callAstar()
+                self.new_task_flag = False
 
             self.publish()
             rate.sleep()

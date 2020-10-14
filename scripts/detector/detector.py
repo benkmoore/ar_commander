@@ -1,174 +1,87 @@
+#!/usr/bin/env python
+
 import numpy as np
-from numba import jit
-from scipy.spatial import KDTree
-import matplotlib.pyplot as plt
-from queue import Queue
-import heapq
 
+from rectangle_detector import RectangleDetector
+from ar_commander.msg import Object, TOF, State
 
-class RectangleDetector:
-    def __init__(self, point_arr: np.ndarray):
-        self.point_arr = point_arr
+RATE = 3
 
-        # list of corner arrays
-        self.rectangle_list = []
+class Detector:
+    def __init__(self):
+        rospy.init_node('detector')
 
-        # search radius for segmentation
-        self.radius = 3
+        # input/ouput data
+        self.tof_data = None
+        self.transformed_pts = None
+        self.point_arr = np.array()
+        self.corners = None
 
-    @staticmethod
-    @jit(nopython = True)
-    def _find_corner(a, b, c):
-        cvec = c.reshape(2, 1)
-        analytical_inverse = (1 / (a[0] * b[1] - a[1] * b[0])) * np.array([[b[1], -b[0]], [-a[1], a[0]]])
-        corner = analytical_inverse @ cvec
-        return corner
+        # state variables
+        self.pos = None
+        self.vel = None
+        self.theta = None
+        self.omega = None
 
-    def find_rectangles(self):
-        cluster_list = self._segment_points()
+        self.rectangleDetector = RectangleDetector(self.point_arr)
 
-        for cluster in cluster_list:
-            corners = self.fit_rectangle(cluster)
-            self.rectangle_list.append(corners)
+        # subscribers
+        rospy.Subscriber('sensor/tof_data', TOF, self.tofCallback)
+        rospy.Subscriber('estimator/state', State, self.stateCallback)
 
-        return self.rectangle_list
+        # publishers
+        self.pub_object = rospy.Publisher('object', Object, queue_size=10)
 
+    ## Callback functions
+    def tofCallback(self, msg):
+        self.tof_data = np.array([msg.tof1, msg.tof2, msg.tof3])
+        self.transformTOFData()
 
-    def _segment_points(self):
-        point_KDtree = KDTree(self.point_arr)
-        Q = Queue()
-        checked_points = set()
-        S = []
-        for point in point_arr:
-            C = set()
-            Q.put(tuple(point))
-            #then we find the points which lie within r distance to any of the points already in the cluster,
-            #and again put the newly found points in this cluster;
-            #we repeat this process until the cluster does not grow any more,
-            # and this finalized cluster serves as one segmentation in the output
+    def stateCallback(self, msg):
+        self.pos = np.array(msg.pos.data)
+        self.vel = np.array(msg.vel.data)
+        self.theta = msg.theta.data
+        self.omega = msg.omega.data
 
-            while not Q.empty():
-                cur_point = Q.get()
+    ## Helper functions
+    def transformTOFData(self):
+        if self.tof_data is not None and self.pos is not None:
+            d1 = np.sqrt(rcfg.L**2 + self.tof_data[0]**2)
+            a1 = np.arctan(rcfg.L/self.tof_data[0])
+            p1_x = self.pos[0] + d1*np.cos(a1 + self.theta)
+            p1_y = self.pos[1] + d1*np.sin(a1 + self.theta)
 
-                if cur_point not in checked_points:
-                    # search radius
-                    self.radius = 3
+            d2 = self.tof_data[1]
+            p2_x = self.pos[0] + d2*np.cos((np.pi/4) + self.theta)
+            p2_y = self.pos[1] + d2*np.sin((np.pi/4) + self.theta)
 
-                    # find all neighbors
-                    neighbor_points = point_arr[point_KDtree.query_ball_point(cur_point, self.radius)]
+            d3 = np.sqrt(rcfg.L**2 + self.tof_data[2]**2)
+            a3 = np.arctan(rcfg.L/self.tof_data[2])
+            p3_x = self.pos[0] - d3*np.cos(a3 + (np.pi/2) - self.theta)
+            p3_y = self.pos[1] + d3*np.sin(a3 + (np.pi/2) - self.theta)
 
-                    # add all neighbors to cluster and queue to check
-                    for neighbor in neighbor_points:
-                        C.add(tuple(neighbor))
-                        Q.put(tuple(neighbor))
+            self.trasnformed_pts = np.array([[p1_x, p1_y], [p2_x, p2_y], [p3_x, p3_y]])
+            self.point_arr = np.append(self.point_arr, self.trasnformed_pts)
 
-                    # mark current point as checked
-                    checked_points.add(cur_point)
+    ## Process functions
+    def publish(self)
+        if self.corners is not None:
+            self.object_msg = Object()
+            self.object_msg.data = self.corners.flatten()
+            self.pub_object.publish()
 
-            if len(C) > 4:
-                S.append(np.array(list(C)))
+    def detectObjects(self):
+        self.rectangleDetector(self.point_arr)
+        self.corners = self.rectangleDetector.find_rectangles()
 
-        return S
-
-    @staticmethod
-    def _variance_criterion(C1, C2):
-        c1_max = np.max(C1)
-        c2_max = np.max(C2)
-        c1_min = np.min(C1)
-        c2_min = np.min(C2)
-
-        v1 = np.hstack((c1_max - C1, C1 - c1_min))
-        v2 = np.hstack((c2_max - C2, C2 - c2_min))
-        D1 = v1[:,np.argmin(np.linalg.norm(v1,axis =0))]
-        D2 = v2[:, np.argmin(np.linalg.norm(v2,axis =0))]
-
-        E1 = D1 < D2
-        E2 = D2 < D1
-
-        gamma = np.var(np.concatenate((D1[E1],D2[~E1]))) + np.var(np.concatenate((D2[E2],D1[~E2])))
-        return gamma
-
-    def fit_rectangle(self, point_cluster):
-        theta_range = np.linspace(0,np.pi/2, 50)
-        Q = []
-        for theta in theta_range:
-            e1 = np.array([[np.cos(theta)],[np.sin(theta)]])
-            e2 = np.array([[-np.sin(theta)],[np.cos(theta)]])
-            C1 = point_cluster @ e1
-            C2 = point_cluster @ e2
-            cost = self._variance_criterion(C1, C2)
-            heapq.heappush(Q, (cost, theta))
-
-        theta_opt = heapq.heappop(Q)[1]
-        e1_opt = np.array([[np.cos(theta_opt)],[np.sin(theta_opt)]])
-        e2_opt  = np.array([[-np.sin(theta_opt)],[np.cos(theta_opt)]])
-        C1_opt = point_cluster @ e1_opt
-        C2_opt = point_cluster @ e2_opt
-        a = np.array([np.cos(theta_opt), -np.sin(theta_opt), np.cos(theta_opt), -np.sin(theta_opt)])
-        b = np.array([np.sin(theta_opt), np.cos(theta_opt), np.sin(theta_opt), np.cos(theta_opt)])
-        c = np.array([np.min(C1_opt), np.min(C2_opt), np.max(C1_opt), np.max(C2_opt)])
-
-        corners = self.get_rect_corners(a, b, c)
-        return corners
-
-
-    # @staticmethod
-    # @jit(nopython = True)
-    def get_rect_corners(self, a, b, c):
-        point_1 = self._find_corner(a[0:2], b[0:2], c[0:2])
-        point_2 = self._find_corner(a[1:3], b[1:3], c[1:3])
-        point_3 = self._find_corner(a[2:4], b[2:4], c[2:4])
-        point_4 = self._find_corner(np.array([a[3], a[0]]), np.array([b[3], b[0]]), np.array([c[3], c[0]]))
-        return np.vstack((point_1.T, point_2.T, point_3.T, point_4.T))
-
-    def plot(self):
-        for corners in corner_list:
-            # plot edges
-            plot_points = np.vstack((corners, corners[0,:]))
-            plt.plot(plot_points[:,0], plot_points[:,1], "-r")
-
-        # plat raw data points
-        plt.plot(self.point_arr[:,0], self.point_arr[:,1],'o')
+    def run(self):
+        rate = rospy.Rate(RATE)
+        while not rospy.is_shutdown():
+            if self.mode == Mode.SEARCH: # only detect in search mode
+                self.detectObjects()
+                self.publish()
+            rate.sleep()
 
 if __name__ == "__main__":
-    point_arr = np.array([
-        [2, 11.5],
-        [2, 12.5],
-        [2.1, 13.5],
-        [2.4, 15.6],
-        [2.1, 16.7],
-        [3.2, 16.7],
-        [4.1, 16.8],
-        [5.2, 17.1],
-        [7.1, 17.0],
-        [8, 16.9],
-        [ -6.5, 7. ],
-        [ -7.5, 7. ],
-        [ -8.5, 7.1],
-        [-10.6, 7.4],
-        [-11.7, 7.1],
-        [-11.7, 8.2],
-        [-11.8, 9.1],
-        [-12.11, 10.2],
-        [-12., 12.1],
-        [-11.9, 13. ],
-        [-5, 0],
-        [-3, 2],
-        [-3, 1],
-        [-4, -2],
-        [-18, 20],
-        [-21.71751442, -5.45405845],
-        [-22.4246212 , -4.74695167],
-        [-23.06101731, -3.96913421],
-        [-24.33380951, -2.27207794],
-        [-25.32375901, -1.70639251],
-        [-24.54594155, -0.92857505],
-        [-23.98025612, -0.22146827],
-        [-23.4145707 , 0.76848122],
-        [-22.00035713, 2.04127343],
-        [-21.29325035, 2.60695885]
-    ])
-    detector = RectangleDetector(point_arr)
-    corner_list = detector.find_rectangles()
-    detector.plot()
-    plt.show()
+    detector = Detector()
+    detector.run()
