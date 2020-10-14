@@ -7,7 +7,6 @@ import numpy.linalg as npl
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
-from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
 
@@ -19,6 +18,7 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
+from scripts.stateMachine.stateMachine import Mode
 import configs.robot_v1 as rcfg
 
 class ControlLoops():

@@ -1,12 +1,12 @@
 import numpy as np
-from numba import jit
 from scipy.spatial import KDTree
 from queue import Queue
 import heapq
 
 
 class RectangleDetector:
-    def __init__(self, point_arr: np.ndarray):
+    def __init__(self, point_arr):
+        assert isinstance(point_arr, np.ndarray)
         self.point_arr = point_arr
 
         # list of corner arrays
@@ -16,11 +16,10 @@ class RectangleDetector:
         self.radius = 3
 
     @staticmethod
-    @jit(nopython = True)
     def _find_corner(a, b, c):
         cvec = c.reshape(2, 1)
         analytical_inverse = (1 / (a[0] * b[1] - a[1] * b[0])) * np.array([[b[1], -b[0]], [-a[1], a[0]]])
-        corner = analytical_inverse @ cvec
+        corner = np.matmul(analytical_inverse, cvec)
         return corner
 
     def find_rectangles(self):
@@ -93,16 +92,16 @@ class RectangleDetector:
         for theta in theta_range:
             e1 = np.array([[np.cos(theta)],[np.sin(theta)]])
             e2 = np.array([[-np.sin(theta)],[np.cos(theta)]])
-            C1 = point_cluster @ e1
-            C2 = point_cluster @ e2
+            C1 = np.matmul(point_cluster, e1)
+            C2 = np.matmul(point_cluster, e2)
             cost = self._variance_criterion(C1, C2)
             heapq.heappush(Q, (cost, theta))
 
         theta_opt = heapq.heappop(Q)[1]
         e1_opt = np.array([[np.cos(theta_opt)],[np.sin(theta_opt)]])
         e2_opt  = np.array([[-np.sin(theta_opt)],[np.cos(theta_opt)]])
-        C1_opt = point_cluster @ e1_opt
-        C2_opt = point_cluster @ e2_opt
+        C1_opt = np.matmul(point_cluster, e1_opt)
+        C2_opt = np.matmul(point_cluster, e2_opt)
         a = np.array([np.cos(theta_opt), -np.sin(theta_opt), np.cos(theta_opt), -np.sin(theta_opt)])
         b = np.array([np.sin(theta_opt), np.cos(theta_opt), np.sin(theta_opt), np.cos(theta_opt)])
         c = np.array([np.min(C1_opt), np.min(C2_opt), np.max(C1_opt), np.max(C2_opt)])
@@ -110,9 +109,6 @@ class RectangleDetector:
         corners = self.get_rect_corners(a, b, c)
         return corners
 
-
-    # @staticmethod
-    # @jit(nopython = True)
     def get_rect_corners(self, a, b, c):
         point_1 = self._find_corner(a[0:2], b[0:2], c[0:2])
         point_2 = self._find_corner(a[1:3], b[1:3], c[1:3])

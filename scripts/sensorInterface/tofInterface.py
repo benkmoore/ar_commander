@@ -9,8 +9,10 @@ sys.path.append(rospkg.RosPack().get_path('ar_commander'))
 import configs.robot_v1 as rcfg
 
 from ar_commander.msg import TOF, State, Object
+from std_msgs.msg import Float64MultiArray
 
 RATE = 10
+TOF_CONVERSION = 1000 # mm to m
 
 
 class TOFInterface():
@@ -18,7 +20,7 @@ class TOFInterface():
         rospy.init_node('tofInterface', anonymous=True)
 
         self.tof_data = None
-        self.transformed_data = None
+        self.transformed_pts = None
 
         self.pos = None
         self.vel = None
@@ -30,7 +32,7 @@ class TOFInterface():
         rospy.Subscriber('estimator/state', State, self.stateCallback)
 
         # publishers
-        self.pub_tof_data = rospy.Publisher('transformed/tof_data', TOF, self.tofCallback)
+        self.pub_tof_data = rospy.Publisher('transformed/tof_points', Float64MultiArray, queue_size=10)
 
     def tofCallback(self, msg):
         self.tof_data = np.array([msg.tof1, msg.tof2, msg.tof3])
@@ -45,6 +47,8 @@ class TOFInterface():
     ## Helper functions
     def transformTOFData(self):
         if self.tof_data is not None and self.pos is not None:
+            self.tof_data = self.tof_data/TOF_CONVERSION
+
             d1 = np.sqrt(rcfg.L**2 + self.tof_data[0]**2)
             a1 = np.arctan(rcfg.L/self.tof_data[0])
             p1_x = self.pos[0] + d1*np.cos(a1 + self.theta)
@@ -64,9 +68,9 @@ class TOFInterface():
     ## Process functions
     def publish(self):
         if self.transformed_pts is not None:
-            self.tof_msg = TOF()
-            self.tof_msg.data = self.transformed_pts
-            self.pub_tof_data.publish(self.tof_msg.data)
+            self.tof_pts = Float64MultiArray()
+            self.tof_pts.data = self.transformed_pts.flatten()
+            self.pub_tof_data.publish(self.tof_pts)
 
     def run(self):
         rate = rospy.Rate(RATE)

@@ -38,7 +38,6 @@ class LocalizationFilter():
 
 
     def predict(self, u):
-        print(self.x, u)
         self.x_pred = np.matmul(self.A, self.x) + np.matmul(self.B, u)
         self.sigma_pred = npl.multi_dot([self.A, self.sigma, self.A.T]) + self.Q
 

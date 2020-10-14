@@ -10,27 +10,32 @@ sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 from astar import AStar, DetOccupancyGrid2D
 from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, State, Task, Object
-from std_msgs.msg import Int8, Pose2D
+from std_msgs.msg import Int8
+from geometry_msgs.msg import Pose2D
 
+RATE = 10
 SEARCH_ANGLE = np.deg2rad(60.0) # search angle either side of trajectory line
 
 
 class Navigator():
     def __init__(self):
         rospy.init_node('navigator')
-
+        # map
         self.map_width = 10
         self.map_height = 10
         self.obstacles = []
 
+        # trajectory
         self.start_pos = (None, None)
         self.end_pos = (None, None)
         self.end_theta = None
+        self.trajectory = None
+
+        # robot state
         self.pos = np.array([None, None])
         self.theta = None
         self.mode = None
 
-        self.trajectory = None
         self.task_pos = None
         self.object = None
 
@@ -70,7 +75,7 @@ class Navigator():
 
     def taskCallback(self,msg):
         self.new_task_flag = True
-        self.end_pos = (msg.x.data, msg.y.data)
+        self.end_pos = msg.pos.data
 
     ## Helper functions
     def getObjectInfo(self, corners):
@@ -104,18 +109,18 @@ class Navigator():
             self.trajectory = None
 
     def run(self):
-        rate = rospy.Rate(10) # 10 Hz
+        rate = rospy.Rate(RATE)
         while not rospy.is_shutdown():
 
-            if self.mode == MODE.IDLE and self.new_pt_flag: # nav to point
+            if self.mode == Mode.IDLE and self.new_pt_flag: # nav to point
                 self.callAstar()
                 self.new_pt_flag = False
 
-            elif self.mode == MODE.TRAJECTORY and self.new_object_flag: # nav to object corner
+            elif self.mode == Mode.TRAJECTORY and self.new_object_flag: # nav to object corner
                 self.callAstar()
                 self.new_object_flag = False
 
-            elif self.mode == MODE.IDLE and self.new_task_flag: # nav search for assigned task
+            elif self.mode == Mode.IDLE and self.new_task_flag: # nav search for assigned task
                 self.callAstar()
                 self.new_task_flag = False
 
