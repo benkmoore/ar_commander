@@ -96,26 +96,26 @@ class TOFInterface():
         rate = rospy.Rate(RATE)
         while not rospy.is_shutdown():
             self.publish()
-            if self.sensor1.xyData is not None:
-                plt.scatter(self.sensor1.xyData[0],self.sensor1.xyData[1],marker = ".")
-                plt.scatter(self.sensor1.absolutPos[0], self.sensor1.absolutPos[1], c = "g", marker = "x")
+            # if self.sensor1.xyData is not None:
+            #     plt.scatter(self.sensor1.xyData[0],self.sensor1.xyData[1],marker = ".")
+            #     plt.scatter(self.sensor1.absolutPos[0], self.sensor1.absolutPos[1], c = "g", marker = "x")
 
-                plt.scatter(self.sensor2.xyData[0],self.sensor2.xyData[1],marker = ".")
-                plt.scatter(self.sensor2.absolutPos[0], self.sensor2.absolutPos[1], c = "g", marker = "x")
+            #     plt.scatter(self.sensor2.xyData[0],self.sensor2.xyData[1],marker = ".")
+            #     plt.scatter(self.sensor2.absolutPos[0], self.sensor2.absolutPos[1], c = "g", marker = "x")
 
-                plt.scatter(self.sensor3.xyData[0],self.sensor3.xyData[1],marker = ".")
-                plt.scatter(self.sensor3.absolutPos[0], self.sensor3.absolutPos[1], c = "g", marker = "x")
+            #     plt.scatter(self.sensor3.xyData[0],self.sensor3.xyData[1],marker = ".")
+            #     plt.scatter(self.sensor3.absolutPos[0], self.sensor3.absolutPos[1], c = "g", marker = "x")
                 
-                plt.show()
-                plt.pause(0.0001)
+            #     plt.show()
+            #     plt.pause(0.0001)
             rate.sleep()
 
 
 if __name__ == '__main__':
-    plt.ion()       
-    fig = plt.figure()
-    plt.axis([-1000,1000,-1000,1000])
-    plt.xlabel("x value in mm")
-    plt.ylabel("y value in mm")
+    # plt.ion()       
+    # fig = plt.figure()
+    # plt.axis([-1000,1000,-1000,1000])
+    # plt.xlabel("x value in mm")
+    # plt.ylabel("y value in mm")
     tofInterface = TOFInterface()
     tofInterface.run()
