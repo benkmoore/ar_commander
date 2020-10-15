@@ -37,7 +37,7 @@ class RectangleDetector:
         Q = Queue()
         checked_points = set()
         S = []
-        for point in point_arr:
+        for point in self.point_arr:
             C = set()
             Q.put(tuple(point))
             #then we find the points which lie within r distance to any of the points already in the cluster,
@@ -53,7 +53,7 @@ class RectangleDetector:
                     self.radius = 3
 
                     # find all neighbors
-                    neighbor_points = point_arr[point_KDtree.query_ball_point(cur_point, self.radius)]
+                    neighbor_points = self.point_arr[point_KDtree.query_ball_point(cur_point, self.radius)]
 
                     # add all neighbors to cluster and queue to check
                     for neighbor in neighbor_points:

@@ -18,8 +18,8 @@ class Detector:
         rospy.init_node('detector')
 
         # input/ouput data
-        self.tof_data = None
-        self.point_arr = np.array([])
+        self.tof_pts = None
+        self.point_arr = np.empty((0,2))
         self.corners = None
 
         # state variables
@@ -28,8 +28,6 @@ class Detector:
         self.theta = None
         self.omega = None
         self.mode = None
-
-        self.rectangleDetector = RectangleDetector(self.point_arr)
 
         # subscribers
         rospy.Subscriber('transformed/tof_points', Float64MultiArray, self.tofCallback)
@@ -44,11 +42,11 @@ class Detector:
         self.mode = Mode(msg.data)
 
     def tofCallback(self, msg):
-        self.tof_data = np.asarray(msg.data).reshape(-1,2)
+        self.tof_pts = np.asarray(msg.data).reshape(-1,2)
         if self.mode == Mode.SEARCH:
-            self.point_arr = np.append(self.point_arr, self.tof_data)
+            self.point_arr = np.vstack((self.point_arr, self.tof_pts))
         else:
-            self.point_arr = np.array([])
+            self.point_arr = np.empty((0,2))
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
@@ -59,14 +57,15 @@ class Detector:
     ## Process functions
     def publish(self):
         if self.corners is not None:
-            self.object_msg = Object()
-            self.object_msg.data = self.corners.flatten()
-            self.pub_object.publish()
+            print(self.corners)
+            # self.object_msg = Object()
+            # self.object_msg.data = np.asarray(self.corners).flatten()
+            # self.pub_object.publish()
 
     def detectObjects(self):
-        self.rectangleDetector(self.point_arr)
-        self.corners = self.rectangleDetector.find_rectangles()
-        print(self.corners)
+        if self.point_arr.size > 0:
+            self.rectangleDetector = RectangleDetector(self.point_arr)
+            self.corners = self.rectangleDetector.find_rectangles()
 
     def run(self):
         rate = rospy.Rate(RATE)

@@ -26,9 +26,11 @@ class ControlLoops():
 
     def __init__(self):
         self.theta_error_sum = 0
+        self.pos_error_sum = 0
 
     def resetController(self):
         self.theta_error_sum = 0
+        self.pos_error_sum = 0
 
     ## Controller Functions
     def thetaController(self, theta_des, theta, omega):
@@ -39,6 +41,7 @@ class ControlLoops():
         theta_err = theta_des - theta
         idx = abs(theta_err) > np.pi
         theta_err -= 2*np.pi*np.sign(theta_err)*idx
+        self.theta_error_sum += theta_err
         theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
         return theta_dot_cmd
 
@@ -47,6 +50,7 @@ class ControlLoops():
         kd = params.pointControllerGains['kd']
 
         p_err = pos_des - pos
+        self.pos_error_sum += p_err
         v_cmd = kp*p_err + kd*vel
         return v_cmd
 
@@ -120,6 +124,7 @@ class ControlNode():
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
         self.traj_idx = 0
         self.controllers.resetController()
+        print("controller received trajectory")
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
@@ -194,7 +199,7 @@ class ControlNode():
 
         self.last_waypoint_flag = False
 
-        if self.mode == Mode.TRAJECTORY:
+        if (self.mode == Mode.TRAJECTORY or self.mode == Mode.SEARCH) and self.trajectory is not None:
             wp, wp_prev = self.getWaypoint()
             if self.traj_idx < self.trajectory.shape[0]-1:
                 v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
