@@ -61,12 +61,19 @@ class TrajectoryController(Controller):
         super(TrajectoryController, self).__init__(ctrl_tf)
 
     def fitSpline2Trajectory(self, trajectory):
-        x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
-        self.x_spline = spi.UnivariateSpline(t, x, s=0) # output: x_des, input: t
-        self.y_spline = spi.UnivariateSpline(t, y, s=0) # output: y_des, input: t
-        self.theta_spline = spi.UnivariateSpline(t, theta, s=0) # output: theta_des, input: t
+        if len(trajectory) > 1:
+            x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
+            if len(x) > 3: K=3
+            elif len(x) > 2: K=2
+            elif len(x) > 1: K=1
+            else:
+                print("Invalid traj")
+                exit(0)
+            self.x_spline = spi.UnivariateSpline(t, x, s=0, k=K) # output: x_des, input: t
+            self.y_spline = spi.UnivariateSpline(t, y, s=0, k=K) # output: y_des, input: t
+            self.theta_spline = spi.UnivariateSpline(t, theta, s=0, k=K) # output: theta_des, input: t
 
-        self.init_traj_time = time.time()
+            self.init_traj_time = time.time()
 
     def getControlCmds(self, pos, theta, vel):
         t = time.time() - self.init_traj_time
