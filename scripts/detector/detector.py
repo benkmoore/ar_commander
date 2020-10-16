@@ -11,6 +11,8 @@ from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Object, TOF, State
 from std_msgs.msg import Int8, Float64MultiArray
 
+import matplotlib.pyplot as plt
+
 RATE = 10
 
 class Detector:
@@ -58,6 +60,10 @@ class Detector:
     def publish(self):
         if self.corners is not None:
             print(self.corners)
+            for corners in self.corners:
+                # plot edges
+                plot_points = np.vstack((corners, corners[0,:]))
+                plt.plot(plot_points[:,0], plot_points[:,1], "-r")
             # self.object_msg = Object()
             # self.object_msg.data = np.asarray(self.corners).flatten()
             # self.pub_object.publish()
@@ -73,8 +79,15 @@ class Detector:
             if self.mode == Mode.SEARCH: # only detect in search mode
                 self.detectObjects()
                 self.publish()
+            plt.show()
+            plt.pause(0.0001)
             rate.sleep()
 
 if __name__ == "__main__":
+    plt.ion()
+    fig = plt.figure()
+    plt.axis([-2,2,-2,2])
+    plt.xlabel("x value in m")
+    plt.ylabel("y value in m")
     detector = Detector()
     detector.run()

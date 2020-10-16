@@ -41,7 +41,6 @@ class DepthSensor():
 
         if self.absolutPos is not None and self.sensorData is not None:
             self.xyData = [round(self.sensorData*np.cos((self.relativAngle + self.theta)) + self.absolutPos[0],2), round(self.sensorData*np.sin((self.relativAngle + self.theta)) + self.absolutPos[1],2)]
-            print(self.xyData, self.theta, self.sensorData)
             return self.xyData
 
 
@@ -88,17 +87,14 @@ class TOFInterface():
             if self.tof_data[0] > 0 and self.tof_data[0] != TOF_DEFAULT/TOF_CONVERSION:
                 P1 = self.sensor1.xyCalculate(self.tof_data[0], self.theta, self.pos)
                 self.transformed_pts = np.vstack((self.transformed_pts, P1))
-                print("added1")
 
             if self.tof_data[1] > 0 and self.tof_data[1] != TOF_DEFAULT/TOF_CONVERSION:
                 P2 = self.sensor2.xyCalculate(self.tof_data[1], self.theta, self.pos)
                 self.transformed_pts = np.vstack((self.transformed_pts, P2))
-                print("added2")
 
             if self.tof_data[2] > 0 and self.tof_data[2] != TOF_DEFAULT/TOF_CONVERSION:
                 P3 = self.sensor3.xyCalculate(self.tof_data[2], self.theta, self.pos)
                 self.transformed_pts = np.vstack((self.transformed_pts, P3))
-                print("added3")
 
     ## Process functions
     def publish(self):
@@ -130,7 +126,7 @@ if __name__ == '__main__':
     plt.ion()
     fig = plt.figure()
     plt.axis([-2,2,-2,2])
-    plt.xlabel("x value in mm")
-    plt.ylabel("y value in mm")
+    plt.xlabel("x value in m")
+    plt.ylabel("y value in m")
     tofInterface = TOFInterface()
     tofInterface.run()
