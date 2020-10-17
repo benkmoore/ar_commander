@@ -131,7 +131,6 @@ class Estimator():
 
             if self.vel_cmd is not None:
                 self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, R_pos)
-            if self.omega_cmd is not None:
                 self.theta_state, self.theta_cov = self.theta_filter.step(u_theta, y_theta, R_theta)
 
                 self.state.pos.data = self.pos_state[0:2]
