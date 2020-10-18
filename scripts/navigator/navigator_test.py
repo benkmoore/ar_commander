@@ -5,7 +5,7 @@ import rospy
 
 from ar_commander.msg import Trajectory
 from std_msgs.msg import Int8
-from scripts.stateMachine.stateMachine import Mode
+from stateMachine.stateMachine import Mode
 
 class Navigator():
     def __init__(self):

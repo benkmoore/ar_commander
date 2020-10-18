@@ -3,7 +3,6 @@
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
 
 from localization_filter import LocalizationFilter
 from ar_commander.msg import State, ControllerCmd, Decawave
