@@ -86,6 +86,8 @@ class ActuatorInterface():
         phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
         v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
+        self.phi_prev = self.wheel_phi_cmd     # store previous command
+
         return v_wheel, phi_cmd
 
 
@@ -96,16 +98,11 @@ class ActuatorInterface():
         self.pub_motor_cmds.publish(cmd)
 
 
-    def actuateMotors(self):
-        self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(self.v_cmd, self.w_cmd)
-        self.phi_prev = self.wheel_phi_cmd     # store previous command
-
-
     def run(self):
         rate = rospy.Rate(params.CONTROLLER_RATE)
         while not rospy.is_shutdown():
             if self.theta is not None:
-                self.actuateMotors()
+                self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(self.v_cmd, self.w_cmd)
                 self.publish()
             rate.sleep()
 
