@@ -7,7 +7,7 @@ import rospy
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
 from astar import AStar, DetOccupancyGrid2D
-from scripts.stateMachine.stateMachine import Mode
+from stateMachine.stateMachine import Mode
 
 
 class Navigator():

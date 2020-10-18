@@ -4,19 +4,19 @@ import rospy
 import numpy as np
 import numpy.linalg as npl
 
+from stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
-from scripts.stateMachine.stateMachine import Mode
 
 env = rospy.get_param("ENV")
 if env == "sim":
-    import configs.sim_params as params
+    import sim_params as params
 elif env == "hardware":
-    import configs.hardware_params as params
+    import hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
-import configs.robot_v1 as rcfg
+import robot_v1 as rcfg
 
 class ControlLoops():
     """Handle the controller loops"""

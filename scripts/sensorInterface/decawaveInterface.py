@@ -7,7 +7,7 @@ import numpy as np
 import collections
 from ar_commander.msg import Decawave
 
-import configs.hardware_params as params
+import hardware_params as params
 
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
