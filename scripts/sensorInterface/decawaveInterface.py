@@ -106,7 +106,7 @@ class GetPose():
         rospy.init_node('decawaveInterface', anonymous=True)
 
         # Decawave msgs
-        self.measurement_msg = Decawave()
+        self.measurement_msg = None
         self.boardY = DecaInterface(port1)
         self.boardY.connect()
         self.boardX = DecaInterface(port2)
@@ -130,7 +130,8 @@ class GetPose():
 
 
     def publish(self):
-        self.pub_decaInterface.publish(self.measurement_msg)
+        if self.measurement_msg is not None:
+            self.pub_decaInterface.publish(self.measurement_msg)
 
 
     def calculateCovs(self):
@@ -153,7 +154,11 @@ class GetPose():
 
 
     def updateMeasurementMsgData(self):
+<<<<<<< HEAD
         """ Populate Decawave message with sensor data, measurement covariances and read flags"""
+=======
+        self.measurement_msg = Decawave()
+>>>>>>> 618f692629ccc534fa8c9e2e00f7cff2a33ca2fd
         self.measurement_msg.x1.data = self.boardY.x # pos 1 on Y axis arm
         self.measurement_msg.y1.data = self.boardY.y
         self.measurement_msg.x2.data = self.boardX.x # pos 2 on X axis arm
@@ -179,8 +184,16 @@ class GetPose():
         if self.boardX.dataRead:
             self.pos2 = np.array([self.boardX.x, self.boardX.y])
 
+<<<<<<< HEAD
         self.calculateCovs()
         self.updateMeasurementMsgData()
+=======
+        if self.pos1 is not None and self.pos2 is not None:
+            # find pos1, pos2 & theta covariances
+            self.calculateCovs()
+            # add new data to output msg
+            self.updateMeasurementMsgData()
+>>>>>>> 618f692629ccc534fa8c9e2e00f7cff2a33ca2fd
 
 
     def run(self):
