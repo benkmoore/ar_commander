@@ -4,9 +4,9 @@
 
     <group ns="robot1">
         <!-- load params -->
-        <rosparam command="load" file="$(find ar_commander)/configs/sim_params.yaml"/>
+        <rosparam command="load" file="$(find ar_commander)/configs/software_sim_params.yaml"/>
         <rosparam command="load" file="$(find ar_sim)/configs/sim_interface_params.yaml"/>
-        <rosparam command="load" file="$(find ar_commander)/configs/robot_v1.yaml"/>
+        <rosparam command="load" file="$(find ar_commander)/configs/hardware_params.yaml"/>
 
         <!-- Set path to ar repos -->
         <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />

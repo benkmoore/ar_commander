@@ -18,15 +18,25 @@ class ControlLoops():
 
     def __init__(self):
         self.theta_error_sum = 0
+        self.thetaControllerGains = {'kp':rospy.get_param("thetaControllerGains/kp"),
+                                     'ki':rospy.get_param("thetaControllerGains/ki"),
+                                     'kd':rospy.get_param("thetaControllerGains/kd")}
+        self.pointControllerGains = {'kp':rospy.get_param("pointControllerGains/kp"),
+                                     'kd':rospy.get_param("pointControllerGains/kd")}
+
+        self.trajectoryControllerGains = {'kp_pos':rospy.get_param("trajectoryControllerGains/kp_pos"),
+                                          'kp_th':rospy.get_param("trajectoryControllerGains/kp_th"),
+                                          'kd_pos':rospy.get_param("trajectoryControllerGains/kd_pos"),
+                                          'k_ol':rospy.get_param("trajectoryControllerGains/k_ol")}
 
     def resetController(self):
         self.theta_error_sum = 0
 
     ## Controller Functions
     def thetaController(self, theta_des, theta, omega):
-        kp = rospy.get_param("thetaControllerGains/kp")
-        ki = rospy.get_param("thetaControllerGains/ki")
-        kd = rospy.get_param("thetaControllerGains/kd")
+        kp = self.thetaControllerGains['kp']
+        ki = self.thetaControllerGains['ki']
+        kd = self.thetaControllerGains['kd']
 
         theta_err = theta_des - theta
         idx = abs(theta_err) > np.pi
@@ -35,8 +45,8 @@ class ControlLoops():
         return theta_dot_cmd
 
     def pointController(self, pos_des, pos, vel):
-        kp = rospy.get_param("pointControllerGains/kp")
-        kd = rospy.get_param("pointControllerGains/kd")
+        kp = self.pointControllerGains['kp']
+        kd = self.pointControllerGains['kd']
 
         p_err = pos_des - pos
         v_cmd = kp*p_err + kd*vel
@@ -44,10 +54,10 @@ class ControlLoops():
 
     def trajectoryController(self, pos, vel, theta, wp, wp_prev):
         # gains
-        kp_pos = rospy.get_param("trajectoryControllerGains/kp_pos")
-        kd_pos = rospy.get_param("trajectoryControllerGains/kd_pos")
-        kp_th = rospy.get_param("trajectoryControllerGains/kp_th")
-        k_ol = rospy.get_param("trajectoryControllerGains/k_ol")
+        kp_pos = self.trajectoryControllerGains['kp_pos']
+        kd_pos = self.trajectoryControllerGains['kd_pos']
+        kp_th = self.trajectoryControllerGains['kp_th']
+        k_ol = self.trajectoryControllerGains['k_ol']
 
         pos_des = wp[0:2]
         v_ol = (wp-wp_prev)[0:2]
