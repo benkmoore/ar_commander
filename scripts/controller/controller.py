@@ -38,20 +38,10 @@ class Controller(object):
             self.z = sps.lfiltic(self.num, self.den, y=np.zeros_like(self.den)) # initial filter delays
             self.z = np.tile(self.z, error.shape)
         u, self.z = sps.lfilter(self.num, self.den, error, axis=1, zi=self.z)
-        v_cmd = u[0:2, 0]
-        omega_cmd = u[2, 0]
-
-        return v_cmd, omega_cmd
-
-
-class PointController(Controller):
-    def __init__(self, ctrl_tf):
-        super(PointController, self).__init__(ctrl_tf)
-
-    def getControlCmds(self, pos, theta, wp):
-        error = (wp[:-1]-np.hstack((pos, theta))).reshape((-1,1))
-        v_cmd, omega_cmd = self.controllerTF(error)
-        v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
+        v_pos = u[0:2, 0] # vel cmd due to pos error
+        v_vel = u[3:, 0]  # vel cmd due to vel error
+        v_cmd = v_pos + v_vel
+        omega_cmd = u[2, 0] # omega cmd due to theta error
 
         return v_cmd, omega_cmd
 
@@ -60,26 +50,33 @@ class TrajectoryController(Controller):
     def __init__(self, ctrl_tf):
         super(TrajectoryController, self).__init__(ctrl_tf)
 
-    def fitSpline2Trajectory(self, trajectory):
-        if len(trajectory) > 1:
-            x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
-            if len(x) > 3: K=3
-            elif len(x) > 2: K=2
-            elif len(x) > 1: K=1
-            else:
-                print("Invalid traj")
-                exit(0)
-            self.x_spline = spi.UnivariateSpline(t, x, s=0, k=K) # output: x_des, input: t
-            self.y_spline = spi.UnivariateSpline(t, y, s=0, k=K) # output: y_des, input: t
-            self.theta_spline = spi.UnivariateSpline(t, theta, s=0, k=K) # output: theta_des, input: t
+    def fitSpline2Trajectory(self, trajectory, pos, theta):
+        if len(trajectory) == 1:
+            default_start_pt = np.hstack((pos, theta, 0))
+            trajectory = np.vstack((default_start_pt, trajectory))
+        x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
+        t = t.reshape(-1)
 
-            self.init_traj_time = time.time()
+        self.x_spline = spi.CubicSpline(t, x, bc_type='clamped', extrapolate='False') # output: x_des, input: t
+        self.y_spline = spi.CubicSpline(t, y, bc_type='clamped', extrapolate='False') # output: y_des, input: t
+        self.theta_spline = spi.CubicSpline(t, theta, bc_type='clamped', extrapolate='False') # output: theta_des, input: t
+
+        self.v_x = self.x_spline.derivative()
+        self.v_y = self.y_spline.derivative()
+
+        self.t = t
+        self.init_traj_time = time.time()
 
     def getControlCmds(self, pos, theta, vel):
         t = time.time() - self.init_traj_time
-        state_des = np.array([self.x_spline(t), self.y_spline(t), self.theta_spline(t)])
-        state_curr = np.hstack((pos, theta))
-        error = (state_des-state_curr).reshape((-1,1))
+        if t < self.t[0]: t = self.t[0] # bound calls between start and end time
+        if t > self.t[-1]: t = self.t[-1]
+
+        vel_des = np.array([self.v_x(t), self.v_y(t)])
+        pt_des = np.array([self.x_spline(t), self.y_spline(t), self.theta_spline(t)])
+        state_des = np.vstack((pt_des, vel_des))
+        state_curr = np.hstack((pos, theta, vel)).reshape(-1,1)
+        error = (state_des-state_curr)
 
         v_cmd, omega_cmd = self.controllerTF(error)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
@@ -111,7 +108,6 @@ class ControlNode():
         self.traj_idx = 0
 
         # initialize controllers
-        self.pointController = PointController(params.pointControllerTF)
         self.trajectoryController = TrajectoryController(params.trajectoryControllerTF)
 
         # output commands
@@ -134,8 +130,9 @@ class ControlNode():
     ## Callback Functions
     def trajectoryCallback(self, msg):
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data,msg.t.data]).T
-        self.trajectoryController.fitSpline2Trajectory(self.trajectory)
+        self.trajectoryController.fitSpline2Trajectory(self.trajectory, self.pos, self.theta)
         self.traj_idx = 0
+        self.new_traj_flag = True
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
@@ -211,10 +208,8 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
-            if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel)
-            else:
-                v_des, w_des = self.pointController.getControlCmds(self.pos, self.theta, wp)
+            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel)
+            if self.traj_idx == self.trajectory.shape[0]-1:
                 self.last_waypoint_flag = True
 
             self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
