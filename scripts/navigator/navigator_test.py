@@ -32,11 +32,11 @@ class Navigator():
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
-                [2.5,0.5,0],
-                [2.5,2.5,np.pi/2],
-                #[1.5,2.5,0],
-                #[1.5,0.5,np.pi/2],
-                #[1.5,0,0]
+                [2.5,0.0,0],
+                [2.5,4,0],
+                [1.5,4,0],
+                [1.5,0.0,0],
+                [2.5,0,0]
                 ])
         elif traj_id == 2: # circle
             t = np.linspace(0,2*np.pi)[:, np.newaxis]
