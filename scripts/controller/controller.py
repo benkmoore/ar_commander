@@ -181,7 +181,7 @@ class ControlNode():
 
         # pick closest phi
         phi_diff = phi_cmd - self.phi_prev
-        idx = abs(phi_diff) > np.pi #/2
+        idx = abs(phi_diff) > 2*np.pi #/2
         phi_cmd -= np.pi*np.sign(phi_diff)*idx
         v_wheel *= -1*idx + 1*~idx
 

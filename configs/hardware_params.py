@@ -12,9 +12,9 @@ trajectoryControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'de
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise
-positionFilterParams = {"Q": 0.001 * np.eye(2), "Q_d": 0.001 * np.eye(2)}
+positionFilterParams = {"Q": 0.01 * np.eye(2), "Q_d": 0.01 * np.eye(2)}
 
-thetaFilterParams = {"Q": 0.001, "Q_d": 0.001}
+thetaFilterParams = {"Q": 0.01, "Q_d": 0.01}
 
 pos_measurement_std = 0.035 # position measurement standard deviation (m)
 
