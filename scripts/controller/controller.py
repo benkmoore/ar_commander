@@ -148,9 +148,9 @@ class ControlNode():
         if self.trajectory is not None:
             # determine waypoint
             wp = self.trajectory[self.traj_idx, :]
-
+            t = time.time() - self.trajectoryController.init_traj_time
             # advance waypoints
-            if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1:
+            if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1 or t > wp[3]:
                 self.traj_idx += 1
                 print("reached: ", wp)
                 wp = self.trajectory[self.traj_idx, :]
