@@ -24,31 +24,15 @@ else:
 from scripts.stateMachine.stateMachine import Mode
 import configs.robot_v1 as rcfg
 
-class Controller(object):
-    def __init__(self, ctrl_tf):
-        self.num = ctrl_tf['num']
-        self.den = ctrl_tf['den']
-        self.z = None
 
-    def saturateCmds(self, v_cmd):
-        return np.clip(v_cmd, -params.max_vel, params.max_vel)
-
-    def controllerTF(self, error):
-        if self.z is None:
-            self.z = sps.lfiltic(self.num, self.den, y=np.zeros_like(self.den)) # initial filter delays
-            self.z = np.tile(self.z, error.shape)
-        u, self.z = sps.lfilter(self.num, self.den, error, axis=1, zi=self.z)
-        v_pos = u[0:2, 0] # vel cmd due to pos error
-        v_vel = u[3:, 0]  # vel cmd due to vel error
-        v_cmd = v_pos + v_vel
-        omega_cmd = u[2, 0] # omega cmd due to theta error
-
-        return v_cmd, omega_cmd
-
-
-class TrajectoryController(Controller):
-    def __init__(self, ctrl_tf):
-        super(TrajectoryController, self).__init__(ctrl_tf)
+class TrajectoryController():
+    def __init__(self, tf_state, tf_state_dot):
+        self.num1 = tf_state['num']
+        self.den1 = tf_state['den']
+        self.z1 = None
+        self.num2 = tf_state_dot['num']
+        self.den2 = tf_state_dot['den']
+        self.z2 = None
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         if len(trajectory) == 1:
@@ -63,23 +47,42 @@ class TrajectoryController(Controller):
 
         self.v_x = self.x_spline.derivative()
         self.v_y = self.y_spline.derivative()
+        self.omega = self.theta_spline.derivative()
 
         self.t = t
         self.init_traj_time = time.time()
 
-    def getControlCmds(self, pos, theta, vel):
+    def getControlCmds(self, pos, theta, vel, omega):
         t = time.time() - self.init_traj_time
         if t < self.t[0]: t = self.t[0] # bound calls between start and end time
         if t > self.t[-1]: t = self.t[-1]
 
-        vel_des = np.array([self.v_x(t), self.v_y(t)])
-        pt_des = np.array([self.x_spline(t), self.y_spline(t), self.theta_spline(t)])
-        state_des = np.vstack((pt_des, vel_des))
-        state_curr = np.hstack((pos, theta, vel)).reshape(-1,1)
-        error = (state_des-state_curr)
+        state_des = np.vstack((self.x_spline(t), self.y_spline(t), self.theta_spline(t)))
+        state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
+        error = state_des - np.vstack((pos.reshape(-1,1), theta))
+        error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
 
-        v_cmd, omega_cmd = self.controllerTF(error)
+        v_cmd, omega_cmd = self.runController(error, error_dot)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
+
+        return v_cmd, omega_cmd
+
+    def saturateCmds(self, v_cmd):
+        return np.clip(v_cmd, -params.max_vel, params.max_vel)
+
+    def runController(self, error, error_dot):
+        if self.z1 is None:
+            self.z1 = sps.lfiltic(self.num1, self.den1, y=np.zeros_like(self.den1)) # initial filter delays
+            self.z1 = np.tile(self.z1, error.shape)
+            self.z2 = sps.lfiltic(self.num2, self.den2, y=np.zeros_like(self.den2)) # initial filter delays
+            self.z2 = np.tile(self.z2, error_dot.shape)
+
+        u1, self.z1 = sps.lfilter(self.num1, self.den1, error, axis=1, zi=self.z1)
+        u2, self.z2 = sps.lfilter(self.num2, self.den2, error_dot, axis=1, zi=self.z2)
+        u = u1 + u2
+
+        v_cmd = u[0:2, 0]
+        omega_cmd = u[2, 0] # omega cmd due to theta error
 
         return v_cmd, omega_cmd
 
@@ -108,7 +111,7 @@ class ControlNode():
         self.traj_idx = 0
 
         # initialize controllers
-        self.trajectoryController = TrajectoryController(params.trajectoryControllerTF)
+        self.trajectoryController = TrajectoryController(params.ctrl_tf_state, params.ctrl_tf_state_dot)
 
         # output commands
         self.wheel_phi_cmd = None
@@ -208,7 +211,7 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
-            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel)
+            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
             if self.traj_idx == self.trajectory.shape[0]-1:
                 self.last_waypoint_flag = True
 
