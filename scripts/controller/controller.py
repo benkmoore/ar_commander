@@ -114,6 +114,10 @@ class ControlNode():
 
         self.last_waypoint_flag = False
 
+        # controller thresholds
+        self.wp_threshold = rospy.get_param("wp_threshold")
+        self.theta_threshold = rospy.get_param("theta_threshold")
+
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
@@ -146,10 +150,9 @@ class ControlNode():
             wp = self.trajectory[self.traj_idx, :]
 
             # advance waypoints
-            if npl.norm(wp[0:2]-self.pos) < rospy.get_param("wp_threshold") and \
-               np.abs(wp[2]-self.theta) < rospy.get_param("theta_threshold") and \
-               self.traj_idx < self.trajectory.shape[0]-1:
-
+            if npl.norm(wp[0:2]-self.pos) < self.wp_threshold and \
+                np.abs(wp[2]-self.theta) < self.theta_threshold and \
+                self.traj_idx < self.trajectory.shape[0]-1:
                 self.traj_idx += 1
                 wp = self.trajectory[self.traj_idx, :]
             if self.traj_idx == 0:

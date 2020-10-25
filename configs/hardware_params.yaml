@@ -1,5 +1,5 @@
 
-N: 4                           # number of wheels
+N: 4                 # number of wheels
 R1: [0.075, 0.425]   # position of wheels along arm 1 (m)
 R2: [0.075, 0.425]   # "" arm 2 (m)
 L: 0.5               # robot arm length from corner (m)
