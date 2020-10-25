@@ -42,6 +42,9 @@ class StateMachine():
         self.pos = None
         self.theta = None
 
+        # controller thresholds
+        self.wp_threshold = rospy.get_param("wp_threshold")
+
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
@@ -82,8 +85,8 @@ class StateMachine():
 
     def trajectoryFinished(self):
         wp_final = self.trajectory[-1,:]
-        check1 = npl.norm(self.pos - wp_final[0:2]) < rospy.get_param("wp_threshold")
-        check2 = np.abs(self.theta - wp_final[2]) < rospy.get_param("wp_threshold")
+        check1 = npl.norm(self.pos - wp_final[0:2]) < self.wp_threshold
+        check2 = np.abs(self.theta - wp_final[2]) < self.wp_threshold
         check3 = self.last_wp_flag
         if check1 and check2 and check3:
             return True
