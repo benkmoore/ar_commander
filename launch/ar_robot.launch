@@ -15,4 +15,9 @@
 	<!-- Launch autonomy stack -->
 	<include file="$(find ar_commander)/launch/autonomy_stack.launch" />
 
+    <!-- Launch teensy replicator -->
+    <arg name="ros_serial_node" value="rosserial" />
+    <param name="ros_serial_node" value="$(arg ros_serial_node)" />
+    <node pkg="ar_sim" type="teensy.py" name="$(arg ros_serial_node)" output="screen" />
+
 </launch>
