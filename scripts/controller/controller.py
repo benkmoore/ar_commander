@@ -27,12 +27,10 @@ import configs.robot_v1 as rcfg
 
 class TrajectoryController():
     def __init__(self, tf_state, tf_state_dot):
-        self.num1 = tf_state['num']
-        self.den1 = tf_state['den']
-        self.z1 = None
-        self.num2 = tf_state_dot['num']
-        self.den2 = tf_state_dot['den']
-        self.z2 = None
+        self.tf_state = tf_state
+        self.tf_state_dot = tf_state_dot
+        self.z_state = None
+        self.z_state_dot = None
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         if len(trajectory) == 1:
@@ -62,7 +60,7 @@ class TrajectoryController():
         error = state_des - np.vstack((pos.reshape(-1,1), theta))
         error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
 
-        v_cmd, omega_cmd = self.runController(error, error_dot)
+        v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
 
         return v_cmd, omega_cmd
@@ -70,19 +68,19 @@ class TrajectoryController():
     def saturateCmds(self, v_cmd):
         return np.clip(v_cmd, -params.max_vel, params.max_vel)
 
-    def runController(self, error, error_dot):
-        if self.z1 is None:
-            self.z1 = sps.lfiltic(self.num1, self.den1, y=np.zeros_like(self.den1)) # initial filter delays
-            self.z1 = np.tile(self.z1, error.shape)
-            self.z2 = sps.lfiltic(self.num2, self.den2, y=np.zeros_like(self.den2)) # initial filter delays
-            self.z2 = np.tile(self.z2, error_dot.shape)
+    def runController(self, error, error_dot, ref_dot_feedfwd):
+        if self.z_state is None:
+            self.z_state = sps.lfiltic(self.tf_state['num'], self.tf_state['den'], y=np.zeros_like(self.tf_state['den'])) # initial filter delays
+            self.z_state = np.tile(self.z_state, error.shape)
+            self.z_state_dot = sps.lfiltic(self.tf_state_dot['num'], self.tf_state_dot['den'], y=np.zeros_like(self.tf_state_dot['den'])) # initial filter delays
+            self.z_state_dot = np.tile(self.z_state_dot, error_dot.shape)
 
-        u1, self.z1 = sps.lfilter(self.num1, self.den1, error, axis=1, zi=self.z1)
-        u2, self.z2 = sps.lfilter(self.num2, self.den2, error_dot, axis=1, zi=self.z2)
-        u = u1 + u2
+        u_state, self.z_state = sps.lfilter(self.tf_state['num'], self.tf_state['den'], error, axis=1, zi=self.z_state)
+        u_state_dot, self.z_state_dot = sps.lfilter(self.tf_state_dot['num'], self.tf_state_dot['den'], error_dot, axis=1, zi=self.z_state_dot)
+        u = u_state + u_state_dot + ref_dot_feedfwd
 
         v_cmd = u[0:2, 0]
-        omega_cmd = u[2, 0] # omega cmd due to theta error
+        omega_cmd = u[2, 0]
 
         return v_cmd, omega_cmd
 
