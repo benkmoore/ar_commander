@@ -6,11 +6,9 @@ wp_threshold: 0.05                        # distance threshold at which we trans
 theta_threshold: rad(pi/8)                # robot theta threshold at which we transition to next waypoint (rad)
 
 # controller params
-thetaControllerGains: {"kp": 175, "ki": 0.03, "kd": 5.0e-08}
-pointControllerGains: {"kp": 180, "kd": 0}
-trajectoryControllerGains: {"kp_pos": 40, "kp_th": 0.75, "kd_pos": 0.5, "k_ol": 50}
+controller_tf: {"num": [ 0.2, -0.3722704 ,  0.17246762], "den": [ 1., -1.97219114,  0.97238837]}
 
-# localization filter params
+# localization filter params: AR1-142
 positionFilterParams: {"Q": 0.8, "Q_d": 0.8}
 thetaFilterParams: {"Q": 0.1, "Q_d": 0.1}
 pos_measurement_std: 0.035                # position measurement standard deviation (m)

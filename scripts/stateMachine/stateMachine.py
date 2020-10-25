@@ -10,6 +10,8 @@ import numpy as np
 import numpy.linalg as npl
 import rospy
 import sys
+import rosnode
+
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
 
@@ -63,11 +65,12 @@ class StateMachine():
 
     ## Decision Fuctions
     def hasInitialized(self):
-        # TODO: add more checks (is teensy running, do we have a battery measurement etc)
+        # TODO: add more checks (battery measurement etc)
         check1 = rospy.get_rostime() - self.mode_start_time > rospy.Duration.from_sec(INIT_TIME)
-        check2 = self.pos is not None
+        check2 = self.pos is not None # check decawave and estimator
+        check3 = rosnode.rosnode_ping(rospy.get_namespace() + rospy.get_param("ros_serial_node"), max_count=1) # check teensy
 
-        if check1 and check2:
+        if check1 and check2 and check3:
             return True
         return False
 
