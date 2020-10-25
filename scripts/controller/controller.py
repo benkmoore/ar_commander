@@ -33,10 +33,11 @@ class TrajectoryController():
         self.z_state_dot = None
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
-        if len(trajectory) == 1:
+        self.trajectory = trajectory.reshape(-1, 4)
+        if self.trajectory.shape[0] == 1:
             default_start_pt = np.hstack((pos, theta, 0))
-            trajectory = np.vstack((default_start_pt, trajectory))
-        x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
+            self.trajectory = np.vstack((default_start_pt, self.trajectory))
+        x, y, theta, t = np.split(self.trajectory, 4, axis=1)
         t = t.reshape(-1)
 
         self.x_spline = spi.CubicSpline(t, x, bc_type='clamped', extrapolate='False') # output: x_des, input: t
@@ -72,7 +73,7 @@ class TrajectoryController():
         if self.z_state is None:
             self.z_state = sps.lfiltic(self.tf_state['num'], self.tf_state['den'], y=np.zeros_like(self.tf_state['den'])) # initial filter delays
             self.z_state = np.tile(self.z_state, error.shape)
-            self.z_state_dot = sps.lfiltic(self.tf_state_dot['num'], self.tf_state_dot['den'], y=np.zeros_like(self.tf_state_dot['den'])) # initial filter delays
+            self.z_state_dot = sps.lfiltic(self.tf_state_dot['num'], self.tf_state_dot['den'], y=np.zeros_like(self.tf_state_dot['den']))
             self.z_state_dot = np.tile(self.z_state_dot, error_dot.shape)
 
         u_state, self.z_state = sps.lfilter(self.tf_state['num'], self.tf_state['den'], error, axis=1, zi=self.z_state)
@@ -145,22 +146,6 @@ class ControlNode():
         self.mode = Mode(msg.data)
 
     ## Helper Functions
-    def getWaypoint(self):
-        if self.trajectory is not None:
-            # determine waypoint
-            wp = self.trajectory[self.traj_idx, :]
-
-            # advance waypoints
-            if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1:
-                self.traj_idx += 1
-                wp = self.trajectory[self.traj_idx, :]
-            if self.traj_idx == 0:
-                wp_prev = np.hstack([self.pos, self.theta])
-            else:
-                wp_prev = self.trajectory[self.traj_idx-1, :]
-
-            return wp, wp_prev
-
     def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
         """Convert velocity and omega commands to motor inputs"""
 
@@ -208,9 +193,9 @@ class ControlNode():
         self.last_waypoint_flag = False
 
         if self.mode == Mode.TRAJECTORY:
-            wp, wp_prev = self.getWaypoint()
             v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
-            if self.traj_idx == self.trajectory.shape[0]-1:
+            t = time.time() - self.trajectoryController.init_traj_time
+            if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < params.wp_threshold and abs(t - self.trajectoryController.t[-1]) < params.time_threshold: # check if near end pos and end time
                 self.last_waypoint_flag = True
 
             self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
