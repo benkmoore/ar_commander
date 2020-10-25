@@ -5,7 +5,7 @@ CONTROLLER_RATE = 70                       # rate in Hz
 max_vel = 3                                # m/s
 
 wp_threshold = 0.25                        # distance threshold at which we signal last waypoint flag (m)
-theta_threshold = np.pi/4                  # theta threshold at which we transition out of trajectory mode (rad)
+theta_threshold = np.pi/8                  # theta threshold at which we transition out of trajectory mode (rad)
 time_threshold = 1                         # time threshold about final trajectory time at which we signal last waypoint flag (s)
 
 # controller gains: Kp = 1.0, Ki = 0.01, Kd = 0.25, rate = 70 Hz see: AR1-192
