@@ -5,13 +5,17 @@ import re
 import sys
 import rospy
 import numpy as np
+import collections
 from ar_commander.msg import Decawave
+
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+
+import configs.hardware_params as params
 
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
 RATE = 10
 
-#-------------Work in progress------------------#
 
 class DecaInterface():
 
@@ -64,19 +68,21 @@ class DecaInterface():
         data = re.sub("[\r\n>]","",data)
 
         #3 is still the length even when we remove all the characters??
-        if len(data) > 3:
+        if len(data) > 4:
             data = np.array(data.split(','))
             data = data[1:5]
             data = data.astype(np.float)
-            self.x = data[0]
-            self.y = data[1]
-            self.confidence = data[3]
-            self.readFails = 0
-            self.dataRead = 1
+            if len(data) > 3:
+                self.x = data[0]
+                self.y = data[1]
+                self.confidence = data[3]
+                self.readFails = 0
+                self.dataRead = 1
+                self.ser.reset_input_buffer()
         else:
             self.readFails += 1
             self.dataRead = 0
-
+            rospy.logerr("on port %s, readSerial failed to read serial data %s times.", self.ser.port, self.readFails)
             #if we dont read any pose data for this amount of tries then redo the serial connection
         if self.readFails > 30:
             #check connection between boards + orientation of tag.
@@ -98,30 +104,92 @@ class GetPose():
     def __init__(self,port1,port2):
         rospy.init_node('decaInterface', anonymous=True)
 
-        #Decawave is a msg type
-        self.absolutePos = Decawave()
+        # Decawave msgs
+        self.measurement_msg = None
         self.boardY = DecaInterface(port1)
         self.boardY.connect()
         self.boardX = DecaInterface(port2)
         self.boardX.connect()
+
+        # Decawave constants
+        self.pos_meas_std = params.pos_measurement_std # pos measurement standard deviation(m)
+
+        # measurements
+        self.pos1 = None
+        self.pos2 = None
+        self.theta = None
+
+        # covariance of measurements
+        self.cov_pos1 = None
+        self.cov_pos2 = None
+        self.cov_theta = None
 
         # publishers
         self.pub_decaInterface = rospy.Publisher('sensor/decawave_measurement', Decawave, queue_size=10)
 
 
     def publish(self):
-        self.pub_decaInterface.publish(self.absolutePos)
+        if self.measurement_msg is not None:
+            self.pub_decaInterface.publish(self.measurement_msg)
+
+
+    def calculateCovs(self):
+        """
+        Calculate measurement covariances.
+
+        Uses decawave hardware param, standard deviation on position measurement and the outputted confidence in the
+        measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from
+        each sensor to find a covariance for the theta measurement with a linear combination. The derivates are
+        derived from the heading calculation, the formula relates robot heading to sensor measurements.
+        """
+        self.cov_pos1 = (self.pos_meas_std**2)*np.eye(2)
+        self.cov_pos2 = (self.pos_meas_std**2)*np.eye(2)
+
+        dx = self.pos2[0] - self.pos1[0]
+        dy = self.pos2[1] - self.pos1[1]
+        div = (dy**2 + dx**2)
+
+        dth_dx1 =  dy / div
+        dth_dy1 = -dx / div
+        dth_dx2 = -dy / div
+        dth_dy2 =  dx / div
+
+        dth_dp1 = np.abs(np.array([dth_dx1, dth_dy1]))
+        dth_dp2 = np.abs(np.array([dth_dx2, dth_dy2]))
+
+        std_theta = np.matmul(dth_dp1, np.sqrt(self.cov_pos1)) + np.matmul(dth_dp2, np.sqrt(self.cov_pos2))
+        self.cov_theta = std_theta ** 2
+
+
+    def updateMeasurementMsgData(self):
+        self.measurement_msg = Decawave()
+        self.measurement_msg.x1.data = self.boardY.x # pos 1 on Y axis arm
+        self.measurement_msg.y1.data = self.boardY.y
+        self.measurement_msg.x2.data = self.boardX.x # pos 2 on X axis arm
+        self.measurement_msg.y2.data = self.boardX.y
+        self.measurement_msg.theta.data = self.theta
+        # covariances
+        self.measurement_msg.cov1.data = self.cov_pos1
+        self.measurement_msg.cov2.data = self.cov_pos2
+        self.measurement_msg.cov_theta.data = self.cov_theta
+
+        # update previous measurements
+        self.pos1_prev = self.pos1
+        self.pos2_prev = self.pos2
+        self.theta_prev = self.theta
 
 
     def obtainMeasurements(self):
-        theta = np.arctan2(-(self.boardY.y-self.boardX.y) ,-(self.boardY.x-self.boardX.x)) + np.pi/4
-        if theta > np.pi: theta = -np.pi + (theta % np.pi) # wrap [-pi, pi]
+        self.theta = np.arctan2(self.boardX.y-self.boardY.y, self.boardX.x-self.boardY.x) + np.pi/4
+        if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
+        self.pos1 = np.array([self.boardY.x, self.boardY.y])
+        self.pos2 = np.array([self.boardX.x, self.boardX.y])
 
-        self.absolutePos.x1.data = self.boardY.x
-        self.absolutePos.y1.data = self.boardY.y
-        self.absolutePos.x2.data = self.boardX.x
-        self.absolutePos.y2.data = self.boardX.y
-        self.absolutePos.theta.data = theta
+        if self.pos1 is not None and self.pos2 is not None:
+            # find pos1, pos2 & theta covariances
+            self.calculateCovs()
+            # add new data to output msg
+            self.updateMeasurementMsgData()
 
 
     def run(self):

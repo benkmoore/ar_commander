@@ -2,12 +2,14 @@
 
 import sys
 import rospy
+import time
 import numpy as np
 import numpy.linalg as npl
+import scipy.signal as sps
+import scipy.interpolate as spi
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
-from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
 
@@ -19,58 +21,68 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
+from scripts.stateMachine.stateMachine import Mode
 import configs.robot_v1 as rcfg
 
-class ControlLoops():
-    """Handle the controller loops"""
+class Controller(object):
+    def __init__(self, ctrl_tf):
+        self.num = ctrl_tf['num']
+        self.den = ctrl_tf['den']
+        self.z = None
 
-    def __init__(self):
-        self.theta_error_sum = 0
+    def saturateCmds(self, v_cmd):
+        return np.clip(v_cmd, -params.max_vel, params.max_vel)
 
-    def resetController(self):
-        self.theta_error_sum = 0
-
-    ## Controller Functions
-    def thetaController(self, theta_des, theta, omega):
-        kp = params.thetaControllerGains['kp']
-        ki = params.thetaControllerGains['ki']
-        kd = params.thetaControllerGains['kd']
-
-        theta_err = theta_des - theta
-        idx = abs(theta_err) > np.pi
-        theta_err -= 2*np.pi*np.sign(theta_err)*idx
-        theta_dot_cmd = kp*theta_err + ki*self.theta_error_sum + kd*omega
-        return theta_dot_cmd
-
-    def pointController(self, pos_des, pos, vel):
-        kp = params.pointControllerGains['kp']
-        kd = params.pointControllerGains['kd']
-
-        p_err = pos_des - pos
-        v_cmd = kp*p_err + kd*vel
-        return v_cmd
-
-    def trajectoryController(self, pos, vel, theta, wp, wp_prev):
-        # gains
-        kp_pos = params.trajectoryControllerGains['kp_pos']
-        kd_pos = params.trajectoryControllerGains['kd_pos']
-        kp_th = params.trajectoryControllerGains['kp_th']
-        k_ol = params.trajectoryControllerGains['k_ol']
-
-        pos_des = wp[0:2]
-        v_ol = (wp-wp_prev)[0:2]
-
-        v_cmd = k_ol*v_ol + kp_pos*(pos_des-pos)
-        theta_des = wp[2]
-        theta_err = theta_des - theta
-        idx = abs(theta_err) > np.pi
-        theta_err -= 2*np.pi*np.sign(theta_err)*idx
-        omega_cmd = kp_th*theta_err
-
-        # saturate v_cmd
-        v_cmd = np.clip(v_cmd, -params.max_vel, params.max_vel)
+    def controllerTF(self, error):
+        if self.z is None:
+            self.z = sps.lfiltic(self.num, self.den, y=np.zeros_like(self.den)) # initial filter delays
+            self.z = np.tile(self.z, error.shape)
+        u, self.z = sps.lfilter(self.num, self.den, error, axis=1, zi=self.z)
+        v_pos = u[0:2, 0] # vel cmd due to pos error
+        v_vel = u[3:, 0]  # vel cmd due to vel error
+        v_cmd = v_pos + v_vel
+        omega_cmd = u[2, 0] # omega cmd due to theta error
 
         return v_cmd, omega_cmd
+
+
+class TrajectoryController(Controller):
+    def __init__(self, ctrl_tf):
+        super(TrajectoryController, self).__init__(ctrl_tf)
+
+    def fitSpline2Trajectory(self, trajectory, pos, theta):
+        if len(trajectory) == 1:
+            default_start_pt = np.hstack((pos, theta, 0))
+            trajectory = np.vstack((default_start_pt, trajectory))
+        x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
+        t = t.reshape(-1)
+
+        self.x_spline = spi.CubicSpline(t, x, bc_type='clamped', extrapolate='False') # output: x_des, input: t
+        self.y_spline = spi.CubicSpline(t, y, bc_type='clamped', extrapolate='False') # output: y_des, input: t
+        self.theta_spline = spi.CubicSpline(t, theta, bc_type='clamped', extrapolate='False') # output: theta_des, input: t
+
+        self.v_x = self.x_spline.derivative()
+        self.v_y = self.y_spline.derivative()
+
+        self.t = t
+        self.init_traj_time = time.time()
+
+    def getControlCmds(self, pos, theta, vel):
+        t = time.time() - self.init_traj_time
+        if t < self.t[0]: t = self.t[0] # bound calls between start and end time
+        if t > self.t[-1]: t = self.t[-1]
+
+        vel_des = np.array([self.v_x(t), self.v_y(t)])
+        pt_des = np.array([self.x_spline(t), self.y_spline(t), self.theta_spline(t)])
+        state_des = np.vstack((pt_des, vel_des))
+        state_curr = np.hstack((pos, theta, vel)).reshape(-1,1)
+        error = (state_des-state_curr)
+
+        v_cmd, omega_cmd = self.controllerTF(error)
+        v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
+
+        return v_cmd, omega_cmd
+
 
 class ControlNode():
     """
@@ -94,7 +106,7 @@ class ControlNode():
         self.traj_idx = 0
 
         # initialize controllers
-        self.controllers = ControlLoops()
+        self.trajectoryController = TrajectoryController(params.trajectoryControllerTF)
 
         # output commands
         self.robot_v_cmd = None
@@ -113,9 +125,10 @@ class ControlNode():
 
     ## Callback Functions
     def trajectoryCallback(self, msg):
-        self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data]).T
+        self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data,msg.t.data]).T
+        self.trajectoryController.fitSpline2Trajectory(self.trajectory, self.pos, self.theta)
         self.traj_idx = 0
-        self.controllers.resetController()
+        self.new_traj_flag = True
 
     def stateCallback(self, msg):
         self.pos = np.array(msg.pos.data)
@@ -136,7 +149,6 @@ class ControlNode():
             if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1:
                 self.traj_idx += 1
                 wp = self.trajectory[self.traj_idx, :]
-
             if self.traj_idx == 0:
                 wp_prev = np.hstack([self.pos, self.theta])
             else:
@@ -154,11 +166,8 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             wp, wp_prev = self.getWaypoint()
-            if self.traj_idx < self.trajectory.shape[0]-1:
-                v_des, w_des = self.controllers.trajectoryController(self.pos, self.vel, self.theta, wp, wp_prev)
-            else:
-                v_des = self.controllers.pointController(wp[0:2], self.pos, self.vel)
-                w_des = self.controllers.thetaController(wp[2], self.theta, self.omega)
+            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel)
+            if self.traj_idx == self.trajectory.shape[0]-1:
                 self.last_waypoint_flag = True
 
             self.robot_v_cmd = v_des
