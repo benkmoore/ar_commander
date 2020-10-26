@@ -2,11 +2,11 @@ import numpy as np
 
 CONTROLLER_RATE = 70                       # rate in Hz
 
-max_vel = 0.75                         # m/s
+max_vel = 0.5  #0.75                         # m/s
 
 wp_threshold = 0.4                        # distance threshold at which we transition to next waypoint (m)
 
-theta_threshold = 2*np.pi				   # robot theta threshold at which we transition to next waypoint (rad)
+theta_threshold = np.pi/5				   # robot theta threshold at which we transition to next waypoint (rad)
 
 trajectoryControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'den': np.array([ 1., -1.97219114,  0.97238837])}
 
@@ -14,7 +14,7 @@ trajectoryControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'de
 # Q : covariance on the process noise
 positionFilterParams = {"Q": 10 * np.eye(2), "Q_d": 10 * np.eye(2)}
 
-thetaFilterParams = {"Q": 10, "Q_d": 10}
+thetaFilterParams = {"Q": 1, "Q_d": 1}
 
 pos_measurement_std = 0.035 # position measurement standard deviation (m)
 

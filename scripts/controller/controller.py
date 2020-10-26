@@ -31,7 +31,9 @@ class Controller(object):
         self.z = None
 
     def saturateCmds(self, v_cmd):
-        return np.clip(v_cmd, -params.max_vel, params.max_vel)
+        if npl.norm(v_cmd) > params.max_vel:
+            v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
+        return v_cmd
 
     def controllerTF(self, error):
         if self.z is None:
@@ -41,7 +43,7 @@ class Controller(object):
         v_pos = u[0:2, 0] # vel cmd due to pos error
         v_vel = u[3:, 0]  # vel cmd due to vel error
         v_cmd = v_pos + v_vel
-        omega_cmd = 0 #u[2, 0] # omega cmd due to theta error
+        omega_cmd = u[2, 0] # omega cmd due to theta error
 
         return v_cmd, omega_cmd
 
@@ -77,7 +79,7 @@ class TrajectoryController(Controller):
         state_des = np.vstack((pt_des, vel_des))
         state_curr = np.hstack((pos, theta, vel)).reshape(-1,1)
         error = (state_des-state_curr)
-
+        print(pt_des, t)
         v_cmd, omega_cmd = self.controllerTF(error)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
 
@@ -153,7 +155,8 @@ class ControlNode():
             if npl.norm(wp[0:2]-self.pos) < params.wp_threshold and np.abs(wp[2]-self.theta) < params.theta_threshold and self.traj_idx < self.trajectory.shape[0]-1 or t > wp[3]:
                 self.traj_idx += 1
                 print("reached: ", wp)
-                wp = self.trajectory[self.traj_idx, :]
+                if self.traj_idx < self.trajectory.shape[0] - 1:
+                    wp = self.trajectory[self.traj_idx, :]
             if self.traj_idx == 0:
                 wp_prev = np.hstack([self.pos, self.theta])
             else:
