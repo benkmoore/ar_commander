@@ -34,9 +34,8 @@ class TrajectoryController():
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         self.trajectory = trajectory.reshape(-1, 4)
-        if self.trajectory.shape[0] == 1:
-            default_start_pt = np.hstack((pos, theta, 0))
-            self.trajectory = np.vstack((default_start_pt, self.trajectory))
+        default_start_pt = np.hstack((pos, theta, 0))
+        self.trajectory = np.vstack((default_start_pt, self.trajectory))
         x, y, theta, t = np.split(self.trajectory, 4, axis=1)
         t = t.reshape(-1)
 
@@ -60,10 +59,10 @@ class TrajectoryController():
         state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
         error = state_des - np.vstack((pos.reshape(-1,1), theta))
         error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
-        print(state_des)
+        
         v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
         v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
-        omega_cmd = np.clip(omega_cmd, -0.2, 0.2)
+        omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
 
         return v_cmd, omega_cmd
 
