@@ -7,8 +7,9 @@ max_vel = 0.5  #0.75                         # m/s
 wp_threshold = 0.4                        # distance threshold at which we transition to next waypoint (m)
 
 theta_threshold = np.pi/5				   # robot theta threshold at which we transition to next waypoint (rad)
-
-trajectoryControllerTF = {'num': np.array([ 0.2, -0.3722704 ,  0.17246762]), 'den': np.array([ 1., -1.97219114,  0.97238837])}
+time_threshold = 1.0
+ctrl_tf_state = {'num': np.array([ 0.01418517, -0.01418314]), 'den': np.array([ 1.0 , -1.98581382,  0.98581584])}
+ctrl_tf_state_dot = {'num': np.array([0.00356506]), 'den': np.array([ 1.0, -0.99643494])}
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise

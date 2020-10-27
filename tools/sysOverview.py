@@ -60,7 +60,7 @@ class Logger():
 
 
     def retrieveData(self):
-        omega_cmd_data = ['omega cmds']
+        omega_cmd_data = ['v wheel cmds']
         phi_cmd_data = ['phi cmds']
         omega_data = ['omega']
         mode_data = ['mode']
