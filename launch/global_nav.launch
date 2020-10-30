@@ -1,0 +1,13 @@
+<launch>
+
+	<!-- Set paths to repos -->
+    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+	<param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+	<!-- Set sim environment -->
+	<param name="ENV" value="sim" />
+
+    <!-- Launch global navigator -->
+    <node pkg="ar_commander" type="global_navigator.py" name="GlobalNavigator" output="screen" />
+
+</launch>
