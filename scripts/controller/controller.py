@@ -32,6 +32,8 @@ class TrajectoryController():
         self.z_state = None
         self.z_state_dot = None
 
+        self.trajectory = None
+
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         self.trajectory = trajectory.reshape(-1, 4)
         default_start_pt = np.hstack((pos, theta, 0))
@@ -51,18 +53,22 @@ class TrajectoryController():
         self.init_traj_time = time.time()
 
     def getControlCmds(self, pos, theta, vel, omega):
-        t = time.time() - self.init_traj_time
-        if t < self.t[0]: t = self.t[0] # bound calls between start and end time
-        if t > self.t[-1]: t = self.t[-1]
+        if self.trajectory is not None:
+            t = time.time() - self.init_traj_time
+            if t < self.t[0]: t = self.t[0] # bound calls between start and end time
+            if t > self.t[-1]: t = self.t[-1]
 
-        state_des = np.vstack((self.x_spline(t), self.y_spline(t), self.theta_spline(t)))
-        state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
-        error = state_des - np.vstack((pos.reshape(-1,1), theta))
-        error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
-        
-        v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
-        v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
-        omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
+            state_des = np.vstack((self.x_spline(t), self.y_spline(t), self.theta_spline(t)))
+            state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
+            error = state_des - np.vstack((pos.reshape(-1,1), theta))
+            error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
+
+            v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
+            v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
+            omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
+        else: # default behaviour
+            v_cmd = np.zeros(2)
+            omega_cmd = 0
 
         return v_cmd, omega_cmd
 
