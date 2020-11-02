@@ -67,7 +67,6 @@ class TrajectoryController():
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
             omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
 
-            if t < 2: v_cmd = np.zeros(2)
         else: # default behaviour
             v_cmd = np.zeros(2)
             omega_cmd = 0
@@ -189,6 +188,9 @@ class ControlNode():
 
         # map to desired omega (angular velocity) of wheels: w = v/r
         w_wheel = v_wheel #/rcfg.wheel_radius
+
+        t = time.time() - self.trajectoryController.init_traj_time
+        if t < 2: w_wheel = np.zeros(rcfg.N)
 
         return w_wheel, phi_cmd
 
