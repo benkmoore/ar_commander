@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="ar_commander" type="global_navigator.py" name="GlobalNavigator" output="screen" />
+</launch>

@@ -206,7 +206,10 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
-            t = time.time() - self.trajectoryController.init_traj_time
+            try:
+                t = time.time() - self.trajectoryController.init_traj_time
+            finally:
+                t = 0
             if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < params.wp_threshold and (t > self.trajectoryController.t[-1] or abs(t - self.trajectoryController.t[-1]) < params.time_threshold): # check if near end pos and end time
                 self.last_waypoint_flag = True
 
