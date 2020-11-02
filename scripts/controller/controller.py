@@ -66,6 +66,8 @@ class TrajectoryController():
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
             omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
+
+            if t < 2: v_cmd = np.zeros(2)
         else: # default behaviour
             v_cmd = np.zeros(2)
             omega_cmd = 0
