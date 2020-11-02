@@ -190,7 +190,7 @@ class ControlNode():
         w_wheel = v_wheel #/rcfg.wheel_radius
 
         t = time.time() - self.trajectoryController.init_traj_time
-        if t < 2: w_wheel = np.zeros(rcfg.N)
+        if t < 4: w_wheel = np.zeros(rcfg.N)
 
         return w_wheel, phi_cmd
 

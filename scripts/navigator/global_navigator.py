@@ -48,7 +48,8 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,8,0,8]
+                [3,8,0,9]
+                [3,0,0,18],
                 # [1,1,0,4],
                 # [0,1,0,6],
                 # [0,0,0,8]
@@ -92,6 +93,9 @@ class GlobalNavigator():
     def publish(self):
         print("publishing")
         for robot_id in self.robot_publishers:
+            # if robot_id == 2:
+            #     pass
+            # else:
             robot_trajectory = self.trajectory + self.robot_offsets[robot_id]
             trajectory = Trajectory()
             trajectory.x.data = robot_trajectory[:,0]
