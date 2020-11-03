@@ -90,7 +90,7 @@ class TrajectoryController():
         return v_cmd
 
     def formationController(self, pos, pos1=None, pos2=None, ns=None):
-        K = 0.1
+        K = 0.2
         if ns == '/robot1/':
             p_des = self.robot_offsets[1][0:2] - self.robot_offsets[2][0:2] + pos2
         elif ns == '/robot2/':
