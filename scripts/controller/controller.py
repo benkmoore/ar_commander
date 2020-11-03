@@ -92,9 +92,9 @@ class TrajectoryController():
     def formationController(self, pos, pos1=None, pos2=None, ns=None):
         K = 0.1
         if ns == '/robot1/':
-            p_des = self.robot_offsets[1] - self.robot_offsets[2] + pos2
+            p_des = self.robot_offsets[1][0:2] - self.robot_offsets[2][0:2] + pos2
         elif ns == '/robot2/':
-            p_des = self.robot_offsets[2] - self.robot_offsets[1] + pos1
+            p_des = self.robot_offsets[2][0:2] - self.robot_offsets[1][0:2] + pos1
         error_formation = p_des - pos
         v_formation_cmd = K*error_formation
 
