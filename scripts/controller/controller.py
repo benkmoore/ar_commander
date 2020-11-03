@@ -59,7 +59,7 @@ class TrajectoryController():
         self.t = t
         self.init_traj_time = time.time()
 
-    def getControlCmds(self, pos, theta, vel, omega, pos1=None, pos2=None, ns):
+    def getControlCmds(self, pos, theta, vel, omega, pos1=None, pos2=None, ns=None):
         if self.trajectory is not None:
             t = time.time() - self.init_traj_time
             if t < self.t[0]: t = self.t[0] # bound calls between start and end time
@@ -89,7 +89,7 @@ class TrajectoryController():
             v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
         return v_cmd
 
-    def formationController(self, pos, pos1=None, pos2=None, ns):
+    def formationController(self, pos, pos1=None, pos2=None, ns=None):
         K = 0.1
         if ns == '/robot1/':
             p_des = self.robot_offsets[1] - self.robot_offsets[2] + pos2
