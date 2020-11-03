@@ -8,6 +8,14 @@ from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
 from stateMachine.stateMachine import Mode
 
+env = rospy.get_param("ENV")
+if env == "sim":
+    import configs.sim_params as params
+elif env == "hardware":
+    import configs.hardware_params as params
+else:
+    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
+
 
 class GlobalNavigator():
     def __init__(self):
@@ -28,10 +36,10 @@ class GlobalNavigator():
         self.pub_trajectory4 = rospy.Publisher('/robot4/cmd_trajectory', Trajectory, queue_size=10)
 
         self.robot_offsets = {
-            1: np.array([-1, -1, 0, 0]),
-            2: np.array([1, -1, np.pi/2, 0]),
-            3: np.array([5, -5, 0, 0]),
-            4: np.array([-5, 5, 0, 0])
+            1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
+            2: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi/2, 0]),
+            3: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi, 0]),
+            4: np.array([-params.object_offset["x"], params.object_offset["y"], -np.pi/2, 0])
         }
 
         self.robot_publishers = {
@@ -48,8 +56,8 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,8,0,9]
-                [3,0,0,18],
+                [3,8,0,12],
+                [3,2,0,24],
                 # [1,1,0,4],
                 # [0,1,0,6],
                 # [0,0,0,8]

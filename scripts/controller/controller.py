@@ -34,6 +34,13 @@ class TrajectoryController():
 
         self.trajectory = None
 
+        self.robot_offsets = {
+            1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
+            2: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi/2, 0]),
+            3: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi, 0]),
+            4: np.array([-params.object_offset["x"], params.object_offset["y"], -np.pi/2, 0])
+        }
+
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         self.trajectory = trajectory.reshape(-1, 4)
         default_start_pt = np.hstack((pos, theta, 0))
@@ -52,7 +59,7 @@ class TrajectoryController():
         self.t = t
         self.init_traj_time = time.time()
 
-    def getControlCmds(self, pos, theta, vel, omega):
+    def getControlCmds(self, pos, theta, vel, omega, pos1=None, pos2=None, ns):
         if self.trajectory is not None:
             t = time.time() - self.init_traj_time
             if t < self.t[0]: t = self.t[0] # bound calls between start and end time
@@ -64,6 +71,10 @@ class TrajectoryController():
             error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
 
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
+
+            if pos1 is not None and pos2 is not None:
+                v_cmd += self.formationController(pos, pos1, pos2, ns)
+
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
             omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
 
@@ -77,6 +88,17 @@ class TrajectoryController():
         if npl.norm(v_cmd) > params.max_vel:
             v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
         return v_cmd
+
+    def formationController(self, pos, pos1=None, pos2=None, ns):
+        K = 0.1
+        if ns == '/robot1/:
+            p_des = self.robot_offsets[1] - self.robot_offsets[2] + pos2
+        elif ns == '/robot2/':
+            p_des = self.robot_offsets[2] - self.robot_offsets[1] + pos1
+        error_formation = p_des - pos
+        v_formation_cmd = K*error_formation
+
+        return v_formation_cmd
 
     def runController(self, error, error_dot, ref_dot_feedfwd):
         if self.z_state is None:
@@ -103,12 +125,17 @@ class ControlNode():
 
     def __init__(self):
         rospy.init_node('controller', anonymous=True)
+        # namespace
+        self.ns = rospy.get_namespace()
 
         # current state
         self.pos = None
         self.theta = None
         self.vel = 0
         self.omega = 0
+
+        self.pos1 = None
+        self.pos2 = None
 
         self.mode = None
 
@@ -133,6 +160,8 @@ class ControlNode():
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
         rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('/robot1/estimator/state', State, self.r1StateCallback)
+        rospy.Subscriber('/robot2/estimator/state', State, self.r2StateCallback)
 
         # publishers
         self.pub_cmds = rospy.Publisher('controller_cmds', ControllerCmd, queue_size=10)
@@ -150,6 +179,12 @@ class ControlNode():
         self.vel = np.array(msg.vel.data)
         self.theta = msg.theta.data
         self.omega = msg.omega.data
+
+    def r1StateCallback(self, msg):
+        self.pos1 = np.array(msg.pos.data)
+
+    def r2StateCallback(self, msg):
+        self.pos2 = np.array(msg.pos.data)
 
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
@@ -208,7 +243,7 @@ class ControlNode():
         self.last_waypoint_flag = False
 
         if self.mode == Mode.TRAJECTORY:
-            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
+            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega, self.pos1, self.pos2, self.ns)
             try:
                 t = time.time() - self.trajectoryController.init_traj_time
                 if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < params.wp_threshold and (t > self.trajectoryController.t[-1] or abs(t - self.trajectoryController.t[-1]) < params.time_threshold): # check if near end pos and end time
