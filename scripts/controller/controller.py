@@ -189,8 +189,11 @@ class ControlNode():
         # map to desired omega (angular velocity) of wheels: w = v/r
         w_wheel = v_wheel #/rcfg.wheel_radius
 
-        t = time.time() - self.trajectoryController.init_traj_time
-        if t < 4: w_wheel = np.zeros(rcfg.N)
+        try:
+            t = time.time() - self.trajectoryController.init_traj_time
+            if t < 4: w_wheel = np.zeros(rcfg.N)
+        except:
+           pass
 
         return w_wheel, phi_cmd
 
