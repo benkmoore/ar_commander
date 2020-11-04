@@ -49,8 +49,8 @@ class GlobalNavigator():
         self.pub_trajectory4 = rospy.Publisher('/robot4/cmd_trajectory', Trajectory, queue_size=10)
 
         self.robot_offsets = {
-            1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
-            2: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi/2, 0]),
+            1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]), #
+            2: np.array([params.object_offset["x"], -params.object_offset["y"] np.pi/2, 0]),
             3: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi, 0]),
             4: np.array([-params.object_offset["x"], params.object_offset["y"], -np.pi/2, 0])
         }
@@ -65,9 +65,11 @@ class GlobalNavigator():
     def calcTime(self):
         if self.pos1 is not None and self.pos2 is not None:
             self.start_wp = np.mean(np.vstack((self.pos1, self.pos2))) #, self.pos3, self.pos4)))
+            prev_time = params.startup_time
             for i in range(0, self.trajectory.shape[0]):
-                self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + params.startup_time
+                self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + prev_time
                 self.start_wp = self.trajectory[i,0:2]
+                prev_time = self.trajectory[i,3]
             print(self.trajectory)
 
     def loadTrajectory(self):
@@ -77,7 +79,8 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,8,0,params.startup_time+15],
+                [3,8,0,0],
+                [3,2,0,1]
                 #[3,2,0,38],
                 # [1,1,0,4],
                 # [0,1,0,6],
