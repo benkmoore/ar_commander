@@ -22,12 +22,24 @@ class GlobalNavigator():
     def __init__(self):
         rospy.init_node('navigator')
 
-        self.pos = np.array([None, None])
-        self.theta = None
         self.mode = None
 
         self.trajectory_published = False
         self.trajectory = None
+
+        self.start_wp = None
+        self.desiredSpeed = 0.5 # m/s
+
+        self.pos1 = None
+        self.pos2 = None
+        self.pos3 = None
+        self.pos4 = None
+
+        # subscribers
+        rospy.Subscriber('/robot1/estimator/state', State, self.state1Callback)
+        rospy.Subscriber('/robot2/estimator/state', State, self.state2Callback)
+        rospy.Subscriber('/robot3/estimator/state', State, self.state3Callback)
+        rospy.Subscriber('/robot4/estimator/state', State, self.state4Callback)
 
         # publishers
         # TODO initialize with for loop
@@ -50,6 +62,14 @@ class GlobalNavigator():
             4: self.pub_trajectory4
         }
 
+    def calcTime(self):
+        if self.pos1 is not None and self.pos2 is not None:
+            self.start_wp = np.mean(np.vstack((self.pos1, self.pos2))) #, self.pos3, self.pos4)))
+            for i in range(0, self.trajectory.shape[0]):
+                self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + params.startup_time
+                self.start_wp = self.trajectory[i,0:2]
+            print(self.trajectory)
+
     def loadTrajectory(self):
         print("loading trajectory")
         traj_id = 1 # specify what trajectory we want to use
@@ -57,7 +77,7 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,2,0,params.startup_time+15],
+                [3,8,0,params.startup_time+15],
                 #[3,2,0,38],
                 # [1,1,0,4],
                 # [0,1,0,6],
@@ -96,8 +116,17 @@ class GlobalNavigator():
         else:
             raise ValueError("Invalid traj_id")
 
-    def modeCallback(self, msg):
-        self.mode = Mode(msg.data)
+    def state1Callback(self, msg):
+        self.pos1 = np.array(msg.pos.data)
+
+    def state2Callback(self, msg):
+        self.pos2 = np.array(msg.pos.data)
+
+    def state3Callback(self, msg):
+        self.pos3 = np.array(msg.pos.data)
+
+    def state4Callback(self, msg):
+        self.pos4 = np.array(msg.pos.data)
 
     def publish(self):
         print("publishing")
@@ -120,6 +149,7 @@ class GlobalNavigator():
         self.loadTrajectory()
         while not rospy.is_shutdown(): # and not self.trajectory_published:
             print("entered while loop")
+            self.calcTime()
             self.publish()
             rate.sleep()
 
