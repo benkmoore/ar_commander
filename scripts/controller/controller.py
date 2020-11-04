@@ -226,7 +226,7 @@ class ControlNode():
 
         try:
             t = time.time() - self.trajectoryController.init_traj_time
-            if t < 4: w_wheel = np.zeros(rcfg.N)
+            if t < params.startup_time: w_wheel = np.zeros(rcfg.N)
         except:
            pass
 

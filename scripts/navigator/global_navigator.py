@@ -57,8 +57,8 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,8,0,23],
-                [3,2,0,38],
+                [3,2,0,params.startup_time+15],
+                #[3,2,0,38],
                 # [1,1,0,4],
                 # [0,1,0,6],
                 # [0,0,0,8]

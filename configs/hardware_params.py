@@ -2,6 +2,8 @@ import numpy as np
 
 CONTROLLER_RATE = 70                       # rate in Hz
 
+startup_time = 4.0                         # s
+
 max_vel = 1.0  #0.75                       # m/s
 
 wp_threshold = 0.4                         # distance threshold at which we transition to next waypoint (m)
