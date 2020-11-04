@@ -97,6 +97,7 @@ class GlobalNavigator():
 
     def publish(self):
         print("publishing")
+        self.calcTime
         for robot_id in self.robot_publishers:
             robot_trajectory = self.trajectory + self.robot_offsets[robot_id]
             trajectory = Trajectory()
@@ -118,4 +119,3 @@ class GlobalNavigator():
 if __name__ == '__main__':
     navigator = GlobalNavigator()
     navigator.run()
-:q
