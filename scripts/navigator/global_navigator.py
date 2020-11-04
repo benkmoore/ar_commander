@@ -41,6 +41,8 @@ class GlobalNavigator():
             4: self.pub_trajectory4
         }
 
+        self.timeVal = self.pos
+        self.desiredSpeed = 0.5 # m/s
     def loadTrajectory(self):
         print("loading trajectory")
         traj_id = 1 # specify what trajectory we want to use
@@ -86,6 +88,10 @@ class GlobalNavigator():
         else:
             raise ValueError("Invalid traj_id")
 
+    def calcTime(self):
+        for waypointNo in range len(self.trajectory)
+            self.trajectory[waypointNo,3] = npl.norm(self.trajectory[0:1] - self.timeVal) / self.desiredSpeed
+
     def modeCallback(self, msg):
         self.mode = Mode(msg.data)
 
@@ -112,3 +118,4 @@ class GlobalNavigator():
 if __name__ == '__main__':
     navigator = GlobalNavigator()
     navigator.run()
+:q
