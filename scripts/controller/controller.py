@@ -72,8 +72,8 @@ class TrajectoryController():
 
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
 
-            if pos1 is not None and pos2 is not None:
-                v_cmd += self.formationController(pos, pos1, pos2, ns)
+            # if pos1 is not None and pos2 is not None:
+            #     v_cmd += self.formationController(pos, pos1, pos2, ns)
 
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
             omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
@@ -90,7 +90,7 @@ class TrajectoryController():
         return v_cmd
 
     def formationController(self, pos, pos1=None, pos2=None, ns=None):
-        K = 0.2
+        K = 0.0
         if ns == '/robot1/':
             p_des = self.robot_offsets[1][0:2] - self.robot_offsets[2][0:2] + pos2
         elif ns == '/robot2/':

@@ -8,7 +8,8 @@ from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
 from stateMachine.stateMachine import Mode
 
-env = rospy.get_param("ENV")
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+env = "hardware" #rospy.get_param("ENV")
 if env == "sim":
     import configs.sim_params as params
 elif env == "hardware":
@@ -56,8 +57,8 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,8,0,12],
-                [3,2,0,24],
+                [3,8,0,23],
+                [3,2,0,38],
                 # [1,1,0,4],
                 # [0,1,0,6],
                 # [0,0,0,8]

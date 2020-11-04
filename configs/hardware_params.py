@@ -2,9 +2,9 @@ import numpy as np
 
 CONTROLLER_RATE = 70                       # rate in Hz
 
-max_vel = 1.0  #0.75                         # m/s
+max_vel = 1.0  #0.75                       # m/s
 
-wp_threshold = 0.4                        # distance threshold at which we transition to next waypoint (m)
+wp_threshold = 0.4                         # distance threshold at which we transition to next waypoint (m)
 
 theta_threshold = np.pi/5				   # robot theta threshold at which we transition to next waypoint (rad)
 time_threshold = 1.0
