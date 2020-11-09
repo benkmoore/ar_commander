@@ -91,7 +91,7 @@ class TrajectoryController():
             v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
 
         if (abs(npl.norm(v_cmd)-npl.norm(self.v_prev))/self.dt) > params.max_acceleration: # constrain rate of change of vel (acceleration)
-            v_cmd = self.v_prev + max_vel_delta*v_cmd/npl.norm(v_cmd)
+            v_cmd = self.v_prev + params.max_acceleration*v_cmd/npl.norm(v_cmd)
         self.v_prev = v_cmd
 
         return v_cmd
