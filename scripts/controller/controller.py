@@ -33,6 +33,8 @@ class TrajectoryController():
         self.z_state_dot = None
 
         self.trajectory = None
+        self.v_prev = np.zeros(2)
+        self.dt = 1.0 / params.CONTROLLER_RATE
 
         self.robot_offsets = {
             1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
@@ -76,7 +78,7 @@ class TrajectoryController():
             #     v_cmd += self.formationController(pos, pos1, pos2, ns)
 
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
-            omega_cmd = np.clip(omega_cmd, -0.175, 0.175)
+            omega_cmd = np.clip(omega_cmd, -params.max_omega, params.max_omega)
 
         else: # default behaviour
             v_cmd = np.zeros(2)
@@ -85,8 +87,13 @@ class TrajectoryController():
         return v_cmd, omega_cmd
 
     def saturateCmds(self, v_cmd):
-        if npl.norm(v_cmd) > params.max_vel:
+        if npl.norm(v_cmd) > params.max_vel: # constrain max vel
             v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
+
+        if (abs(npl.norm(v_cmd)-npl.norm(self.v_prev))/self.dt) > params.max_acceleration: # constrain rate of change of vel (acceleration)
+            v_cmd = self.v_prev + max_vel_delta*v_cmd/npl.norm(v_cmd)
+        self.v_prev = v_cmd
+
         return v_cmd
 
     def formationController(self, pos, pos1=None, pos2=None, ns=None):

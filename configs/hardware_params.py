@@ -5,11 +5,15 @@ CONTROLLER_RATE = 70                       # rate in Hz
 startup_time = 4.0                         # s
 
 max_vel = 1.0  #0.75                       # m/s
+max_omega = 0.175                          # rad/s
 
 wp_threshold = 0.4                         # distance threshold at which we transition to next waypoint (m)
 
+max_acceleration = 1.0                     # max acceleration (m/s^2)
+
 theta_threshold = np.pi/5				   # robot theta threshold at which we transition to next waypoint (rad)
 time_threshold = 1.0
+
 ctrl_tf_state = {'num': np.array([ 0.01418517, -0.01418314]), 'den': np.array([ 1.0 , -1.98581382,  0.98581584])}
 ctrl_tf_state_dot = {'num': np.array([0.00356506]), 'den': np.array([ 1.0, -0.99643494])}
 
