@@ -34,7 +34,6 @@ class TrajectoryController():
 
         self.trajectory = None
         self.v_prev = np.zeros(2)
-        self.dt = 1.0 / params.CONTROLLER_RATE
 
         self.robot_offsets = {
             1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
@@ -90,7 +89,7 @@ class TrajectoryController():
         if npl.norm(v_cmd) > params.max_vel: # constrain max vel
             v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
 
-        if (abs(npl.norm(v_cmd)-npl.norm(self.v_prev))/self.dt) > params.max_acceleration: # constrain rate of change of vel (acceleration)
+        if abs(npl.norm(v_cmd)-npl.norm(self.v_prev)) > params.max_acceleration: # constrain rate of change of vel (acceleration)
             v_cmd = self.v_prev + params.max_acceleration*v_cmd/npl.norm(v_cmd)
         self.v_prev = v_cmd
 
