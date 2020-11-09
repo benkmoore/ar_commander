@@ -50,7 +50,7 @@ class GlobalNavigator():
 
         self.robot_offsets = {
             1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]), #
-            2: np.array([params.object_offset["x"], -params.object_offset["y"] np.pi/2, 0]),
+            2: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi/4, 0]),
             3: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi, 0]),
             4: np.array([-params.object_offset["x"], params.object_offset["y"], -np.pi/2, 0])
         }
@@ -79,8 +79,8 @@ class GlobalNavigator():
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
-                [3,8,0,0],
-                [3,2,0,1]
+                [3,8,0,1],
+                [3,2,0,2]
                 #[3,2,0,38],
                 # [1,1,0,4],
                 # [0,1,0,6],

@@ -1,14 +1,22 @@
 #!/usr/bin/env python
 
 import numpy as np
+import numpy.linalg as npl
 import rospy
 import sys
 
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
-
-from ar_commander.msg import Trajectory
+from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
-from scripts.stateMachine.stateMachine import Mode
+from stateMachine.stateMachine import Mode
+
+sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
+env = "hardware" #rospy.get_param("ENV")
+if env == "sim":
+    import configs.sim_params as params
+elif env == "hardware":
+    import configs.hardware_params as params
+else:
+    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
 class Navigator():
     def __init__(self):
@@ -18,23 +26,42 @@ class Navigator():
         self.trajectory = np.zeros([1,3])
         self.trajectory_published = False
 
+        self.pos = None
+
+        self.start_wp = None
+        self.desiredSpeed = 0.4 # m/s
+
         # subscribers
-        rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('/robot2/state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('/robot2/estimator/state', State, self.stateCallback)
 
         # publishers
-        self.pub_trajectory = rospy.Publisher('cmd_trajectory', Trajectory, queue_size=10)
+        self.pub_trajectory = rospy.Publisher('/robot2/cmd_trajectory', Trajectory, queue_size=10)
 
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
+
+    def stateCallback(self,msg):
+        self.pos = msg.pos.data
+
+    def calcTime(self):
+        if self.pos is not None:
+            self.start_wp = self.pos
+            prev_time = params.startup_time
+            for i in range(0, self.trajectory.shape[0]):
+                print(self.start_wp)
+                self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + prev_time
+                self.start_wp = self.trajectory[i,0:2]
+                prev_time = self.trajectory[i,3]
+            print(self.trajectory)
 
     def loadTrajectory(self):
         traj_id = 1 # specify what trajectory we want to use
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
-                [2.5, 2,0, 7],
-                [2.5, 6, 0, 22],
-                [2.5, 0, 0, 40],
+                [2.5, 6, np.pi/4, 20],
+                [2.5, 0, np.pi/4, 40],
                 #[2.5, 1, 0, 46],
                 #[1,1,0,1],
                 #[2.5,1,0,4],
@@ -92,6 +119,7 @@ class Navigator():
         while not rospy.is_shutdown() and not self.trajectory_published:
             if self.mode is not None and self.mode.value >= Mode.IDLE.value:
                 self.loadTrajectory()
+                self.calcTime()
                 self.publish()
             rate.sleep()
 
