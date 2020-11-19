@@ -97,8 +97,8 @@ class FormationController():
         # should robot states be part of the graph?
         # should robot states be a dictionary held in the top level class
         # top level robot states get updated by callback
-        robot = self.robot_states[robot_ns]
-        robot_ns = robot_ns
+        robot = self.robot_states[robot_ns[:-1]]
+        robot_ns = robot_ns[:-1]
         sum_gain = 0
         formation_control = np.zeros((3, 1))
 

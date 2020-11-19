@@ -63,8 +63,8 @@ class GlobalNavigator():
         }
 
     def calcTime(self):
-        if self.pos1 is not None and self.pos2 is not None:
-            self.start_wp = np.mean(np.vstack((self.pos1, self.pos2))) #, self.pos3, self.pos4)))
+        if self.pos1 is not None and self.pos2 is not None and self.pos3 is not None and self.pos4 is not None:
+            self.start_wp = np.mean(np.vstack((self.pos1, self.pos2, self.pos3, self.pos4)))
             prev_time = params.startup_time
             for i in range(0, self.trajectory.shape[0]):
                 self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + prev_time
