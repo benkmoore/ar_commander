@@ -90,7 +90,7 @@ class FormationController():
     def checkSystemOnline(self):
         self.system_online = True
         for robot_ns in self.graph.nodes():
-            if self.robot_states[robot_ns].x == None:
+            if self.robot_states[robot_ns].x is None:
                 self.system_online = False
 
     def getControlCmds(self, robot_ns):
