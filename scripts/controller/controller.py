@@ -229,7 +229,7 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
-            v_des += self.formationController.calc_control(self.ns)[0:2]
+            v_des += self.formationController.getControlCmds(self.ns)[0:2]
 
             try:
                 t = time.time() - self.trajectoryController.init_traj_time

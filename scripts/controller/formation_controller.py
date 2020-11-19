@@ -61,6 +61,7 @@ class FormationController():
         self.formation_gain = 1
 
         # set up state subscriber object for each robot
+        self.system_online = False
         for robot_ns in self.graph.nodes():
             self.robot_states[robot_ns] = RobotSubscriber(robot_ns)
 
@@ -87,7 +88,13 @@ class FormationController():
         self.graph.add_edge("/robot4", "/robot2", weight=1)
         self.graph.add_edge("/robot4", "/robot3", weight=1)
 
-    def calc_control(self, robot_ns):
+    def checkSystemOnline(self):
+        self.system_online = True
+        for robot_ns in self.graph.nodes():
+            if self.robot_states[robot_ns].x == None:
+                self.system_online = False
+
+    def getControlCmds(self, robot_ns):
         # should robot states be part of the graph?
         # should robot states be a dictionary held in the top level class
         # top level robot states get updated by callback
@@ -96,35 +103,38 @@ class FormationController():
         sum_gain = 0
         formation_control = np.zeros((3, 1))
 
-        for neighbor_id in self.graph.predecessors(robot_ns):
-            neighbor = self.robot_states[neighbor_id]
+        self.checkSystemOnline()
+        if self.system_online:
+            for neighbor_id in self.graph.predecessors(robot_ns):
+                neighbor = self.robot_states[neighbor_id]
 
-            # get gains
-            edge_gain = self.graph[neighbor.robot_ns][robot.robot_ns]["weight"]
+                # get gains
+                edge_gain = self.graph[neighbor.robot_ns][robot.robot_ns]["weight"]
 
-            # get offsets
-            neighbor_offset = nx.get_node_attributes(self.graph,"offset")[neighbor_id].copy()
-            robot_offset = nx.get_node_attributes(self.graph,"offset")[robot_ns].copy()
+                # get offsets
+                neighbor_offset = nx.get_node_attributes(self.graph,"offset")[neighbor_id].copy()
+                robot_offset = nx.get_node_attributes(self.graph,"offset")[robot_ns].copy()
 
-            th = robot.x[2,0]
-            R = np.array([
-            [np.cos(th), -np.sin(th)],
-            [np.sin(th), np.cos(th)]
-            ])
+                th = robot.x[2,0]
+                R = np.array([
+                [np.cos(th), -np.sin(th)],
+                [np.sin(th), np.cos(th)]
+                ])
 
-            robot_offset[0:2] = R.dot(robot_offset[0:2])
-            neighbor_offset[0:2] = R.dot(neighbor_offset[0:2])
+                robot_offset[0:2] = R.dot(robot_offset[0:2])
+                neighbor_offset[0:2] = R.dot(neighbor_offset[0:2])
 
-            # calculate errors
-            formation_error = (robot.x - neighbor.x) - (robot_offset - neighbor_offset)
+                # calculate errors
+                formation_error = (robot.x - neighbor.x) - (robot_offset - neighbor_offset)
 
-            # calculate control
-            # assumes all robots can access the reference
-            formation_control += edge_gain * (neighbor.x_d - self.formation_gain * formation_error)
+                # calculate control
+                # assumes all robots can access the reference
+                formation_control += edge_gain * (neighbor.x_d - self.formation_gain * formation_error)
 
-            # print(robot_ns, " formation error = ", formation_error)
-            sum_gain += (edge_gain + reference_gain)
+                # print(robot_ns, " formation error = ", formation_error)
+                sum_gain += (edge_gain + reference_gain)
 
-        control = (1.0 / sum_gain) * (formation_control + reference_control)
+            control = (1.0 / sum_gain) * (formation_control + reference_control)
+
         print(control)
         return control
