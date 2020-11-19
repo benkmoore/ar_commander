@@ -151,8 +151,6 @@ class ControlNode():
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
         rospy.Subscriber('state_machine/mode', Int8, self.modeCallback)
-        rospy.Subscriber('/robot1/estimator/state', State, self.r1StateCallback)
-        rospy.Subscriber('/robot2/estimator/state', State, self.r2StateCallback)
 
         # publishers
         self.pub_cmds = rospy.Publisher('controller_cmds', ControllerCmd, queue_size=10)
