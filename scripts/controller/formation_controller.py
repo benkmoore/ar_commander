@@ -6,7 +6,6 @@ import sys
 
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
-from stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 import networkx as nx
 from std_msgs.msg import Int8, Bool
