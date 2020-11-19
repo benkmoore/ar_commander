@@ -50,9 +50,9 @@ class GlobalNavigator():
 
         self.robot_offsets = {
             1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]), #
-            2: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi/4, 0]),
-            3: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi, 0]),
-            4: np.array([-params.object_offset["x"], params.object_offset["y"], -np.pi/2, 0])
+            2: np.array([ params.object_offset["x"], -params.object_offset["y"], np.pi/2, 0]),
+            3: np.array([ params.object_offset["x"],  params.object_offset["y"], np.pi, 0]),
+            4: np.array([-params.object_offset["x"],  params.object_offset["y"], -np.pi/2, 0])
         }
 
         self.robot_publishers = {
