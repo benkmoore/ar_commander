@@ -131,9 +131,9 @@ class FormationController():
                 formation_control += edge_gain * (neighbor.x_d - self.formation_gain * formation_error)
 
                 # print(robot_ns, " formation error = ", formation_error)
-                sum_gain += (edge_gain + reference_gain)
+                sum_gain += edge_gain
 
-            control = (1.0 / sum_gain) * (formation_control + reference_control)
+            control = (1.0 / sum_gain) * formation_control
 
         print(control)
         return control
