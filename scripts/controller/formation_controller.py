@@ -134,7 +134,7 @@ class FormationController():
                 # print(robot_ns, " formation error = ", formation_error)
                 sum_gain += edge_gain
 
-            control = (1.0 / sum_gain) * formation_error * 2
+            control = -(1.0 / sum_gain) * formation_error * 0.1
             control = control.flatten()
 
         return control

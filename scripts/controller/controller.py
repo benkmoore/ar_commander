@@ -228,6 +228,8 @@ class ControlNode():
         if self.mode == Mode.TRAJECTORY:
             v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
             v_des += self.formationController.getControlCmds(self.ns)[0:2]
+            if npl.norm(v_des) > 0.7: # constrain max vel
+                v_des = 0.7 * v_des / npl.norm(v_des)
 
             try:
                 t = time.time() - self.trajectoryController.init_traj_time

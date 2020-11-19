@@ -28,7 +28,7 @@ class GlobalNavigator():
         self.trajectory = None
 
         self.start_wp = None
-        self.desiredSpeed = 0.5 # m/s
+        self.desiredSpeed = 0.2 # m/s
 
         self.pos1 = None
         self.pos2 = None
