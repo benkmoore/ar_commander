@@ -128,12 +128,12 @@ class FormationController():
 
                 # calculate control
                 # assumes all robots can access the reference
-                formation_control += edge_gain * (neighbor.x_d - self.formation_gain * formation_error)
+                # formation_control += edge_gain * (neighbor.x_d - self.formation_gain * formation_error)
 
                 # print(robot_ns, " formation error = ", formation_error)
                 sum_gain += edge_gain
 
-            control = (1.0 / sum_gain) * formation_control
+            control = (1.0 / sum_gain) * formation_error * 0.1
             control = control.flatten()
 
         print(control)
