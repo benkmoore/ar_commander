@@ -101,6 +101,7 @@ class FormationController():
         robot_ns = robot_ns[:-1]
         sum_gain = 0
         formation_control = np.zeros((3, 1))
+        control = np.zeros((3,1))
 
         self.checkSystemOnline()
         if self.system_online:
@@ -136,5 +137,4 @@ class FormationController():
             control = (1.0 / sum_gain) * formation_error * 0.1
             control = control.flatten()
 
-        print(control)
         return control
