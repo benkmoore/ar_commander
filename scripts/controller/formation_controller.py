@@ -134,6 +134,7 @@ class FormationController():
                 sum_gain += edge_gain
 
             control = (1.0 / sum_gain) * formation_control
+            control = control.flatten()
 
         print(control)
         return control
