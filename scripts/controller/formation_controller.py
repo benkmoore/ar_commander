@@ -135,6 +135,5 @@ class FormationController():
                 sum_gain += edge_gain
 
             control = -(1.0 / sum_gain) * formation_error * 0.1
-            control = control.flatten()
 
-        return control
+        return control.flatten()

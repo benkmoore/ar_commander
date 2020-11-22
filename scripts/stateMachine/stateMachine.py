@@ -10,8 +10,10 @@ import numpy as np
 import numpy.linalg as npl
 import rospy
 import sys
+
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
+
 
 RATE = 10
 INIT_TIME = 5   # Minimum time to remain in init mode
@@ -80,7 +82,7 @@ class StateMachine():
     def trajectoryFinished(self):
         wp_final = self.trajectory[-1,:]
         check1 = npl.norm(self.pos - wp_final[0:2]) < params.wp_threshold
-        check2 = np.abs(self.theta - wp_final[2]) < params.theta_threshold
+        check2 = np.abs(wrapAngle(self.theta - wp_final[2])) < params.theta_threshold
         check3 = self.last_wp_flag
         if check1 and check2 and check3:
             return True
@@ -129,6 +131,7 @@ if __name__ == '__main__':
         import configs.hardware_params as params
     else:
         raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
+    from scripts.utils import wrapAngle
 
     state_machine = StateMachine()
     state_machine.run()

@@ -8,7 +8,7 @@ class LocalizationFilter():
     localization filter. Uses statespace model to predict the next state of the robot via the
     dynamics, x(k+1) = Ax(k)+Bu(k) + w_process, with input, u and process noise, w_process.
     Updates the state using measurements y and covariance R via the measurement model
-    y(k) = Cx(k). If state is an angle, indicated by bool angle variable, enforce angle wrap 
+    y(k) = Cx(k). If state is an angle, indicated by bool angle variable, enforce angle wrap
     to [-pi, pi].
     """
 
@@ -26,14 +26,13 @@ class LocalizationFilter():
         self.Q = Q  # covariance on process noise
 
         self.is_angle = is_angle   # specifies whether state is an angle (and needs to be wrapped)
- 
 
-    def wrap_angle(self, angle):
+
+    def wrap_angle(self, angle_delta):
         """Wraps angle to [-pi, pi] to avoid delta > pi in filter state"""
-        if abs(angle) > np.pi:
-            angle = angle - np.sign(angle) * 2 * np.pi
+        angle_delta = (angle_delta + np.pi) % (2 * np.pi) - np.pi
 
-        return angle
+        return angle_delta
 
 
     def predict(self, u):

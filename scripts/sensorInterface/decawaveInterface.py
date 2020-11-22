@@ -11,10 +11,11 @@ from ar_commander.msg import Decawave
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 import configs.hardware_params as params
+from scripts.utils import wrapAngle
 
 PORT1 = params.decawave_ports[0]  # sensor 1 usb port: Y axis arm of robot
 PORT2 = params.decawave_ports[1]  # sensor 2 usb port: X axis arm of robot
-SERIALTIMEOUT = 0.3     # duration of serial read (s) 
+SERIALTIMEOUT = 0.3     # duration of serial read (s)
 NUM_READ_FAILS = 30     # number of read attempts before serial connection is restarted
 RATE = 10               # (Hz)
 
@@ -44,15 +45,15 @@ class DecaInterface():
         Connect to decawave board and to request localization data
 
         Shell mode is entered via a serial write command and the serial
-        buffer is reset before data is requested. Before writing 'lep' to 
-        the board the input buffer is reset to 0. If the buffer fills, this 
-        means that the board is already sending info down the serial line 
+        buffer is reset before data is requested. Before writing 'lep' to
+        the board the input buffer is reset to 0. If the buffer fills, this
+        means that the board is already sending info down the serial line
         and if we send our command in this case then it will stop the info.
         """
 
         if not self.ser.is_open:
             self.ser.open()
-        
+
         self.ser.write(b'\r\r') # enter shell mode to talk to the board
         time.sleep(1) # comms setup time
         rospy.loginfo("Decawave serial connecting")
@@ -84,7 +85,7 @@ class DecaInterface():
             self.readFails += 1
             self.dataRead = False
             rospy.logerr("on port %s, readSerial failed to read serial data %s times.", self.ser.port, self.readFails)
-        
+
         if self.readFails > NUM_READ_FAILS: # check connection between boards + orientation of tag.
             rospy.logerr("readSerial failed to read serial data %s times. Check: 1. Anchors xy pos is accurate, 2. Enough anchors in range, 3. Orientation of tag.", self.readFails)
             self.readFails = 0
@@ -135,10 +136,10 @@ class GetPose():
     def calculateCovs(self):
         """
         Calculate measurement covariances.
-        
+
         Uses decawave hardware param, standard deviation on position measurement and the outputted confidence in the
-        measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from 
-        each sensor to find a covariance for the theta measurement with a linear combination. The derivates are 
+        measurement timestamp from the board. Propagates uncertainty by combining the measurement covariances from
+        each sensor to find a covariance for the theta measurement with a linear combination. The derivates are
         derived from the heading calculation, the formula relates robot heading to sensor measurements.
         """
         self.cov_pos1 = (self.pos_meas_std**2)*np.eye(2)
@@ -177,12 +178,12 @@ class GetPose():
         # flags
         self.measurement_msg.new_meas1.data = self.boardY.dataRead
         self.measurement_msg.new_meas2.data = self.boardX.dataRead
-        
+
 
     def obtainMeasurements(self):
         if self.boardY.dataRead and self.boardX.dataRead:
             self.theta = np.arctan2(self.boardX.y-self.boardY.y, self.boardX.x-self.boardY.x) + np.pi/4
-            if self.theta > np.pi: self.theta = -np.pi + (self.theta % np.pi) # wrap [-pi, pi]
+            self.theta = wrapAngle(self.theta) # wrap [-pi, pi]
         if self.boardY.dataRead:
             self.pos1 = np.array([self.boardY.x, self.boardY.y])
         if self.boardX.dataRead:
@@ -194,7 +195,7 @@ class GetPose():
 
 
     def run(self):
-        rate = rospy.Rate(RATE) 
+        rate = rospy.Rate(RATE)
         while not rospy.is_shutdown():
             self.boardY.readSerial()
             self.boardX.readSerial()

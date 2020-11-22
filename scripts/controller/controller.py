@@ -23,6 +23,7 @@ else:
 
 from scripts.stateMachine.stateMachine import Mode
 from scripts.controller import formation_controller
+from scripts.utils import wrapAngle
 import configs.robot_v1 as rcfg
 
 
@@ -67,9 +68,10 @@ class TrajectoryController():
             if t < self.t[0]: t = self.t[0] # bound calls between start and end time
             if t > self.t[-1]: t = self.t[-1]
 
-            state_des = np.vstack((self.x_spline(t), self.y_spline(t), self.theta_spline(t)))
+            state_des = np.vstack((self.x_spline(t), self.y_spline(t), wrapAngle(self.theta_spline(t))))
             state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
             error = state_des - np.vstack((pos.reshape(-1,1), theta))
+            error[2] = wrapAngle(error[2]) # wrap theta error to [-pi, pi]
             error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
 
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
