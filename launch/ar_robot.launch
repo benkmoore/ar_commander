@@ -3,10 +3,6 @@
 	<arg name="robot_tf"/>
 	<arg name="init_pose"/>
 
-	<!-- Set paths to repos -->
-    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
-	<param name="AR_SIM_DIR" value="$(find ar_sim)" />
-
 	<!-- Set sim environment -->
 	<param name="ENV" value="sim" />
 
