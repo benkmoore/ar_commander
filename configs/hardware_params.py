@@ -15,7 +15,7 @@ theta_threshold = np.pi/5				   # robot theta threshold at which we transition t
 time_threshold = 1.0
 
 ctrl_tf_state = {'num': np.array([ 0.02122073, -0.02118035]), 'den': np.array([ 1.        , -1.97875901,  0.978799394])}
-ctrl_tf_state_dot = {'num': np.array([0.00711741]), 'den': np.array(1.        , -0.99288259)}
+ctrl_tf_state_dot = {'num': np.array([0.00711741]), 'den': np.array([1.        , -0.99288259])}
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise
