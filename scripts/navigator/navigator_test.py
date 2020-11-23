@@ -32,11 +32,11 @@ class Navigator():
         self.desiredSpeed = 0.4 # m/s
 
         # subscribers
-        rospy.Subscriber('/robot2/state_machine/mode', Int8, self.modeCallback)
-        rospy.Subscriber('/robot2/estimator/state', State, self.stateCallback)
+        rospy.Subscriber('/robot3/state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('/robot3/estimator/state', State, self.stateCallback)
 
         # publishers
-        self.pub_trajectory = rospy.Publisher('/robot2/cmd_trajectory', Trajectory, queue_size=10)
+        self.pub_trajectory = rospy.Publisher('/robot3/cmd_trajectory', Trajectory, queue_size=10)
 
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
@@ -60,8 +60,8 @@ class Navigator():
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
-                [2.5, 6, np.pi/4, 20],
-                [2.5, 0, np.pi/4, 40],
+                [2.5, 8, np.pi, 20],
+                [2.5, 0, np.pi, 40],
                 #[2.5, 1, 0, 46],
                 #[1,1,0,1],
                 #[2.5,1,0,4],
