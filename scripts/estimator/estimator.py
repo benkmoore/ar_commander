@@ -18,6 +18,7 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
+from scripts.utils import wrapAngle
 import configs.robot_v1 as rcfg
 
 RATE = 10
@@ -162,7 +163,7 @@ class Estimator():
 
             self.state.pos.data = self.pos_state[0:2]
             self.state.vel.data = self.pos_state[2:4]
-            self.state.theta.data = self.theta_state[0]
+            self.state.theta.data = wrapAngle(self.theta_state[0])
             self.state.omega.data = self.theta_state[1]
 
 
