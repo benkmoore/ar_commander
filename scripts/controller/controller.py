@@ -46,7 +46,7 @@ class TrajectoryController():
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         self.trajectory = trajectory.reshape(-1, 4)
-        default_start_pt = np.hstack((pos, theta, 0))
+        default_start_pt = np.hstack((pos, self.trajectory[0,2], 0))
         self.trajectory = np.vstack((default_start_pt, self.trajectory))
         x, y, theta, t = np.split(self.trajectory, 4, axis=1)
         t = t.reshape(-1)
