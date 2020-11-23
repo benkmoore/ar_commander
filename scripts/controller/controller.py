@@ -64,7 +64,7 @@ class TrajectoryController():
 
     def getControlCmds(self, pos, theta, vel, omega):
         if self.trajectory is not None:
-            t = time.time() - self.init_traj_time
+            t = time.time() - self.init_traj_time - params.startup_time
             if t < self.t[0]: t = self.t[0] # bound calls between start and end time
             if t > self.t[-1]: t = self.t[-1]
 
