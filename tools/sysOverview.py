@@ -25,6 +25,7 @@ python sysOverview.py --static False --robot_ids 'robot1' 'robot2'
 
 import os
 import numpy as np
+import numpy.linalg as npl
 import rospy
 import time
 import argparse
@@ -96,8 +97,8 @@ class Logger():
                 phi_cmd_data.append(self.robots[robot_id].cmd_phi_arr)
             if self.robots[robot_id].mode is not None:
                 mode_data.append(self.robots[robot_id].mode)
-            if self.robots[robot_id].pos_error_data is not None:
-                pos_error_data.append(self.robots[robot_id].pos_error_data)
+            if self.robots[robot_id].error is not None:
+                pos_error_data.append(self.robots[robot_id].error)
 
         # populate table
         self.table.append(pos_data)
@@ -156,7 +157,7 @@ class DataRetriever():
 
 
     def errorCallback(self, msg):
-        self.error = msg.data
+        self.error = npl.norm(msg.data)
 
 
     def decawaveCallback(self, msg):

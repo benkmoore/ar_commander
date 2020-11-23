@@ -255,9 +255,12 @@ class ControlNode():
         cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
+        if self.trajectoryController.error is not None:
+            errorray = Float32MultiArray()
+            errorray.data = self.trajectoryController.error
+            self.pub_errors.publish(errorray)
 
         self.pub_cmds.publish(cmd)
-        self.pub_errors.publish(self.trajectoryController.error)
 
         flag = Bool()
         flag.data = self.last_waypoint_flag
