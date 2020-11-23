@@ -37,7 +37,7 @@ sys.path.append(AR_COMMANDER_DIR)
 
 from scripts.stateMachine.stateMachine import Mode
 from ar_commander.msg import Decawave, State, ControllerCmd
-from std_msgs.msg import Int8
+from std_msgs.msg import Int8, Float32MultiArray
 
 RATE = 3 # display rate
 DECIMALS = 2
@@ -70,6 +70,9 @@ class Logger():
         pos_data = ['pos']
         vel_data = ['vel']
         state_theta_data = ['theta state']
+        pos_error_data = ['pos error']
+        theta_error_data = ['theta error']
+
 
         # collect data from robots
         for robot_id in self.robot_IDs:
@@ -93,6 +96,8 @@ class Logger():
                 phi_cmd_data.append(self.robots[robot_id].cmd_phi_arr)
             if self.robots[robot_id].mode is not None:
                 mode_data.append(self.robots[robot_id].mode)
+            if self.robots[robot_id].pos_error_data is not None:
+                pos_error_data.append(self.robots[robot_id].pos_error_data)
 
         # populate table
         self.table.append(pos_data)
@@ -105,6 +110,7 @@ class Logger():
         self.table.append(omega_cmd_data)
         self.table.append(phi_cmd_data)
         self.table.append(mode_data)
+        self.table.append(pos_error_data)
 
 
     def resetTable(self):
@@ -138,11 +144,19 @@ class DataRetriever():
 
         self.mode = None
 
+        self.error = None
+
+
         # subscribers
         rospy.Subscriber('/'+ robot_id +'/sensor/decawave_measurement', Decawave, self.decawaveCallback)
         rospy.Subscriber('/'+ robot_id +'/estimator/state', State, self.stateCallback)
         rospy.Subscriber('/'+ robot_id +'/controller_cmds', ControllerCmd, self.cmdCallback)
         rospy.Subscriber('/'+ robot_id +'/state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('/'+ robot_id +'/errors', Float32MultiArray, self.errorCallback)
+
+
+    def errorCallback(self, msg):
+        self.error = msg.data
 
 
     def decawaveCallback(self, msg):

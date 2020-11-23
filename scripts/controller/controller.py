@@ -11,7 +11,7 @@ import scipy.interpolate as spi
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
-from std_msgs.msg import Int8, Bool
+from std_msgs.msg import Int8, Bool, Float32MultiArray
 
 env = rospy.get_param("ENV")
 if env == "sim":
@@ -36,6 +36,7 @@ class TrajectoryController():
 
         self.trajectory = None
         self.v_prev = np.zeros(2)
+        self.error = None
 
         self.robot_offsets = {
             1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
@@ -71,9 +72,10 @@ class TrajectoryController():
             state_des = np.vstack((self.x_spline(t), self.y_spline(t), wrapAngle(self.theta_spline(t))))
             state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
             error = state_des - np.vstack((pos.reshape(-1,1), theta))
+            self.error = error[0:2]
             error[2] = wrapAngle(error[2]) # wrap theta error to [-pi, pi]
             error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
-
+            
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
 
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
@@ -157,7 +159,8 @@ class ControlNode():
         # publishers
         self.pub_cmds = rospy.Publisher('controller_cmds', ControllerCmd, queue_size=10)
         self.last_wp_pub = rospy.Publisher('controller/last_waypoint_flag', Bool, queue_size=10)
-
+        self.pub_errors = rospy.Publisher('errors', Float32MultiArray, queue_size=10)
+        
     ## Callback Functions
     def trajectoryCallback(self, msg):
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data,msg.t.data]).T
@@ -254,6 +257,7 @@ class ControlNode():
         cmd.robot_omega.data = self.robot_omega_cmd
 
         self.pub_cmds.publish(cmd)
+        self.pub_errors.publish(self.trajectoryController.error)
 
         flag = Bool()
         flag.data = self.last_waypoint_flag
