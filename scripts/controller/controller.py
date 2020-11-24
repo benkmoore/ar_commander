@@ -75,7 +75,7 @@ class TrajectoryController():
             self.error = error[0:2]
             error[2] = wrapAngle(error[2]) # wrap theta error to [-pi, pi]
             error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
-            
+
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
 
             v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
@@ -160,7 +160,7 @@ class ControlNode():
         self.pub_cmds = rospy.Publisher('controller_cmds', ControllerCmd, queue_size=10)
         self.last_wp_pub = rospy.Publisher('controller/last_waypoint_flag', Bool, queue_size=10)
         self.pub_errors = rospy.Publisher('errors', Float32MultiArray, queue_size=10)
-        
+
     ## Callback Functions
     def trajectoryCallback(self, msg):
         self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data,msg.t.data]).T
@@ -232,9 +232,18 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
-            v_des += self.formationController.getControlCmds(self.ns)[0:2]
-            if npl.norm(v_des) > params.max_vel: # constrain max vel
+            formationCmd= self.formationController.getControlCmds(self.ns)
+
+            # append formation ctrl
+            v_des_form = formationCmd[0:2]
+            w_des_form = formationCmd[2]
+            v_des += v_des_form
+            w_des += w_des_form
+
+            # constrain max vel and omega
+            if npl.norm(v_des) > params.max_vel:
                 v_des = params.max_vel * v_des / npl.norm(v_des)
+            w_des = np.clip(w_des, -params.max_omega, params.max_omega)
 
             try:
                 t = time.time() - self.trajectoryController.init_traj_time

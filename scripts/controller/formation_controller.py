@@ -125,15 +125,16 @@ class FormationController():
                 neighbor_offset[0:2] = R.dot(neighbor_offset[0:2])
 
                 # calculate errors
-                formation_error = (robot.x - neighbor.x) - (robot_offset - neighbor_offset)
+                state_curr = (robot.x - neighbor.x)
+                ref = (robot_offset - neighbor_offset)
+                formation_error = ref - state_curr
 
-                # calculate control
-                # assumes all robots can access the reference
-                # formation_control += edge_gain * (neighbor.x_d - self.formation_gain * formation_error)
+                # add feedforward term
+                formation_control += edge_gain * (neighbor.x_d + self.formation_gain * formation_error)
 
                 # print(robot_ns, " formation error = ", formation_error)
                 sum_gain += edge_gain
 
-            control = -(1.0 / sum_gain) * formation_error * 0.05
+            control = (1.0 / sum_gain) * formation_control * 0.05
 
         return control.flatten()
