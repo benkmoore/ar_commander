@@ -72,8 +72,9 @@ class TrajectoryController():
             state_des = np.vstack((self.x_spline(t), self.y_spline(t), wrapAngle(self.theta_spline(t))))
             state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
             error = state_des - np.vstack((pos.reshape(-1,1), theta))
-            self.error = error[0:2]
             error[2] = wrapAngle(error[2]) # wrap theta error to [-pi, pi]
+            self.error = error
+
             error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
             
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
