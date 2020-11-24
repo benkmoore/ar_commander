@@ -71,7 +71,7 @@ class Logger():
         pos_data = ['pos']
         vel_data = ['vel']
         state_theta_data = ['theta state']
-        pos_error_data = ['pos error']
+        pos_error_data = ['error x y theta']
         theta_error_data = ['theta error']
 
 
@@ -157,8 +157,9 @@ class DataRetriever():
 
 
     def errorCallback(self, msg):
-        self.error = npl.norm(msg.data)
-
+        erArray = msg.data
+        self.error = (erArray)
+        self.error = np.around(np.append(self.error,npl.norm(erArray[0:2])), decimals=DECIMALS) 
 
     def decawaveCallback(self, msg):
         self.boardY = np.around(np.array([msg.x1.data,msg.y1.data]), decimals=DECIMALS)
