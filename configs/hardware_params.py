@@ -19,7 +19,7 @@ ctrl_tf_state_dot = {'num': np.array([0.01418416]), 'den': np.array([ 1.        
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise
-positionFilterParams = {"Q": 10e-3 * np.eye(2), "Q_d": 10e-3 * np.eye(2)}
+positionFilterParams = {"Q": 0.001225 * np.eye(2), "Q_d": 0.001225 * np.eye(2)}
 
 thetaFilterParams = {"Q": 1, "Q_d": 1}
 
