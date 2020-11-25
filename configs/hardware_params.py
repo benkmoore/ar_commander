@@ -19,7 +19,7 @@ ctrl_tf_state_dot = {'num': np.array([0.01418416]), 'den': np.array([ 1.        
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise
-positionFilterParams = {"Q": 0.001225 * np.eye(2), "Q_d": 0.001225 * np.eye(2)}
+positionFilterParams = {"Q": 0.005 * np.eye(2), "Q_d": 0.005 * np.eye(2)}
 
 thetaFilterParams = {"Q": 1, "Q_d": 1}
 
@@ -27,4 +27,4 @@ pos_measurement_std = 0.035 # position measurement standard deviation (m)
 
 decawave_ports = ['/dev/ttyACM1','/dev/ttyACM2']
 
-object_offset = {"x": 0.75, "y": 0.75}
+object_offset = {"x": 1.0, "y": 0.75}
