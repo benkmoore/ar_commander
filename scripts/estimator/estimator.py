@@ -154,8 +154,8 @@ class Estimator():
             self.state.omega.data = 0
         else:  # run localization filter
             u_pos, y_pos, C_pos, R_pos = self.getPosFilterInputs()
-            if npl.norm(u_pos) < 0.3:
-                u_pos = np.zeros(2)
+            # if npl.norm(u_pos) < 0.3:
+            #     u_pos = np.zeros(2)
             u_theta, y_theta, C_theta, R_theta = self.getThetaFilterInputs()
 
             self.pos_state, self.pos_cov = self.pos_filter.step(u_pos, y_pos, C_pos, R_pos)
