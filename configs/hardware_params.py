@@ -5,7 +5,7 @@ CONTROLLER_RATE = 70                       # rate in Hz
 startup_time = 6.0                         # s
 
 max_vel = 1.0  #0.75                       # m/s
-max_omega = 0.175                          # rad/s
+max_omega = 0.08                          # rad/s
 
 wp_threshold = 0.4                         # distance threshold at which we transition to next waypoint (m)
 
