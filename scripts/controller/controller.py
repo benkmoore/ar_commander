@@ -233,6 +233,7 @@ class ControlNode():
 
         if self.mode == Mode.TRAJECTORY:
             v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
+            w_des = 0
             formationCmd= self.formationController.getControlCmds(self.ns)
 
             # append formation ctrl
