@@ -14,8 +14,8 @@ max_acceleration = 1.0                     # max acceleration (m/s^2)
 theta_threshold = np.pi/5				   # robot theta threshold at which we transition to next waypoint (rad)
 time_threshold = 1.0
 
-ctrl_tf_state = {'num': np.array([ 0.01770369, -0.01769358]), 'den': np.array([ 1.        , -1.98229124,  0.98230135])}
-ctrl_tf_state_dot = {'num': np.array([0.01065709]), 'den': np.array([ 1.        , -0.98934291])}
+ctrl_tf_state = {'num': np.array([ 0.02120564, -0.02119554]), 'den': np.array([ 1.        , -1.97878929,  0.97879939])}
+ctrl_tf_state_dot = {'num': np.array([0.00711741]), 'den': np.array([1.        , -0.99288259])}
 
 # filter params obtained from data and testing at: AR1-142
 # Q : covariance on the process noise
