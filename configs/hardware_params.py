@@ -14,7 +14,7 @@ max_acceleration = 1.0                     # max acceleration (m/s^2)
 theta_threshold = np.pi/5				   # robot theta threshold at which we transition to next waypoint (rad)
 time_threshold = 1.0
 
-ctrl_tf_state = {'num': np.array([ 0.02120564, -0.02119554]), 'den': np.array([ 1.        , -1.97878929,  0.97879939])}
+ctrl_tf_state = {'num': np.array([ 0.0170018 , -0.01699168]), 'den': np.array([ 1.        , -1.98299313,  0.98300325])}
 ctrl_tf_state_dot = {'num': np.array([0.00711741]), 'den': np.array([1.        , -0.99288259])}
 
 # filter params obtained from data and testing at: AR1-142
