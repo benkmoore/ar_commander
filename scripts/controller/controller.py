@@ -239,9 +239,9 @@ class ControlNode():
             # append formation ctrl
             v_des_form = formationCmd[0:2]
             w_des_form = formationCmd[2]
-            K_form = 1.2
             K_ref = 1.0
-            v_des = (K_form*v_des_form + K_ref*v_des) / (K_form + K_ref)
+            K_form = 1.0
+            v_des = K_form*v_des_form + K_ref*v_des
             #w_des += w_des_form
             if (self.i % 100 == 0):
                 print(npl.norm(v_des), npl.norm(v_des_form))
