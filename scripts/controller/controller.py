@@ -125,6 +125,7 @@ class ControlNode():
         rospy.init_node('controller', anonymous=True)
         # namespace
         self.ns = rospy.get_namespace()
+        self.i = 0
 
         # current state
         self.pos = None
@@ -240,6 +241,10 @@ class ControlNode():
             w_des_form = formationCmd[2]
             v_des += v_des_form
             w_des += w_des_form
+            if (self.i % 100 == 0):
+                print(npl.norm(v_des), npl.norm(v_des_form))
+            self.i += 1
+
 
             # constrain max vel and omega
             if npl.norm(v_des) > params.max_vel:
