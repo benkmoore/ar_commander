@@ -66,7 +66,7 @@ class TrajectoryController():
     def getControlCmds(self, pos, theta, vel, omega):
         if self.trajectory is not None:
             t = time.time() - self.init_traj_time - params.startup_time
-            if t < self.t[0]: t = self.t[0] # bound calls between start and end time
+            if t < self.t[0]: t = self.t[0] + 4 # bound calls between start and end time
             if t > self.t[-1]: t = self.t[-1]
 
             state_des = np.vstack((self.x_spline(t), self.y_spline(t), wrapAngle(self.theta_spline(t))))
@@ -239,12 +239,13 @@ class ControlNode():
             # append formation ctrl
             v_des_form = formationCmd[0:2]
             w_des_form = formationCmd[2]
-            v_des += v_des_form
+            K_form = 1.2
+            K_ref = 1.0
+            v_des = (K_form*v_des_form + K_ref*v_des) / (K_form + K_ref)
             #w_des += w_des_form
             if (self.i % 100 == 0):
                 print(npl.norm(v_des), npl.norm(v_des_form))
             self.i += 1
-
 
             # constrain max vel and omega
             if npl.norm(v_des) > params.max_vel:
