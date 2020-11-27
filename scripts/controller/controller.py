@@ -240,7 +240,7 @@ class ControlNode():
             v_des_form = formationCmd[0:2]
             w_des_form = formationCmd[2]
             v_des += v_des_form
-            w_des += w_des_form
+            #w_des += w_des_form
             if (self.i % 100 == 0):
                 print(npl.norm(v_des), npl.norm(v_des_form))
             self.i += 1
