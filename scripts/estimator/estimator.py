@@ -21,7 +21,7 @@ else:
 from scripts.utils import wrapAngle
 import configs.robot_v1 as rcfg
 
-RATE = 20
+RATE = 100
 
 
 class Estimator():
