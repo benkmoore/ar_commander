@@ -15,9 +15,10 @@ from scripts.utils import wrapAngle
 
 PORT1 = params.decawave_ports[0]  # sensor 1 usb port: Y axis arm of robot
 PORT2 = params.decawave_ports[1]  # sensor 2 usb port: X axis arm of robot
-SERIALTIMEOUT = 0.3     # duration of serial read (s)
-NUM_READ_FAILS = 30     # number of read attempts before serial connection is restarted
-RATE = 10               # (Hz)
+SERIALTIMEOUT = 0.3        # duration of serial read (s)
+NUM_READ_FAILS = 10        # number of fails to read decas print warning
+FAILED_CONNECT_LIMIT = 30  # number of read attempts before serial connection is restarted
+RATE = 20                  # (Hz)
 
 
 
@@ -84,9 +85,10 @@ class DecaInterface():
         else: # if no pose data read more than NUM_READ_FAILS redo the serial connection
             self.readFails += 1
             self.dataRead = False
-            rospy.logerr("on port %s, readSerial failed to read serial data %s times.", self.ser.port, self.readFails)
+            if self.readFails > NUM_READ_FAILS:
+                rospy.logerr("on port %s, readSerial failed to read serial data %s times.", self.ser.port, self.readFails)
 
-        if self.readFails > NUM_READ_FAILS: # check connection between boards + orientation of tag.
+        if self.readFails > FAILED_CONNECT_LIMIT: # check connection between boards + orientation of tag.
             rospy.logerr("readSerial failed to read serial data %s times. Check: 1. Anchors xy pos is accurate, 2. Enough anchors in range, 3. Orientation of tag.", self.readFails)
             self.readFails = 0
             self.dataRead = False
