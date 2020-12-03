@@ -6,7 +6,6 @@ import sys
 
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
-from stateMachine.stateMachine import Mode
 
 sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 env = "hardware" #rospy.get_param("ENV")
@@ -16,6 +15,7 @@ elif env == "hardware":
     import configs.hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
+from scripts.stateMachine.stateMachine import Mode
 
 
 class GlobalNavigator():
