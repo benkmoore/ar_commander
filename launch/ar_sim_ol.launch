@@ -7,10 +7,6 @@
         <!-- Set enviroment variable to sim -->
         <param name="ENV" value="sim" />
 
-        <!-- Set path to ar repos -->
-        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
-        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
-
         <!-- launch ar_sim -->
         <include file="$(find ar_sim)/launch/gazebo_sim.launch" >
             <arg name="robot_id" value="robot1" />
@@ -22,5 +18,11 @@
         <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
         <node pkg="ar_commander" type="navigator.py" name="Navigator" output="screen" />
         <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+
+        <!-- Launch teensy replicator -->
+        <arg name="ros_serial_node" value="rosserial" />
+        <param name="ros_serial_node" value="$(arg ros_serial_node)" />
+        <node pkg="ar_sim" type="teensy.py" name="$(arg ros_serial_node)" output="screen" />
+
     </group>
 </launch>

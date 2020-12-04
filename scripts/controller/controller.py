@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import rospy
 import time
 import numpy as np
@@ -15,9 +14,9 @@ from std_msgs.msg import Int8, Bool, Float32MultiArray
 
 env = rospy.get_param("ENV")
 if env == "sim":
-    import configs.sim_params as params
+    import sim_params as params
 elif env == "hardware":
-    import configs.hardware_params as params
+    import hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 

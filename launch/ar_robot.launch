@@ -3,10 +3,6 @@
 	<arg name="robot_tf"/>
 	<arg name="init_pose"/>
 
-	<!-- Set paths to repos -->
-    <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
-	<param name="AR_SIM_DIR" value="$(find ar_sim)" />
-
 	<!-- Set sim environment -->
 	<param name="ENV" value="sim" />
 
@@ -18,5 +14,10 @@
 
 	<!-- Launch autonomy stack -->
 	<include file="$(find ar_commander)/launch/autonomy_stack.launch" />
+
+    <!-- Launch teensy replicator -->
+    <arg name="ros_serial_node" value="rosserial" />
+    <param name="ros_serial_node" value="$(arg ros_serial_node)" />
+    <node pkg="ar_sim" type="teensy.py" name="$(arg ros_serial_node)" output="screen" />
 
 </launch>

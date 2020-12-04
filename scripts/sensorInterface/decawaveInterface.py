@@ -2,7 +2,6 @@
 import serial
 import time
 import re
-import sys
 import rospy
 import numpy as np
 import collections

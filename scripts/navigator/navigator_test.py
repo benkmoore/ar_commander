@@ -3,8 +3,8 @@
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
 
+<<<<<<< HEAD
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
 from stateMachine.stateMachine import Mode
@@ -17,6 +17,11 @@ elif env == "hardware":
     import configs.hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
+=======
+from ar_commander.msg import Trajectory
+from std_msgs.msg import Int8
+from stateMachine.stateMachine import Mode
+>>>>>>> d9209facffca89125269d4ec9c63bb0c1c99962d
 
 class Navigator():
     def __init__(self):
@@ -60,6 +65,7 @@ class Navigator():
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
+<<<<<<< HEAD
                 [2.5, 8, np.pi, 20],
                 [2.5, 0, np.pi, 40],
                 #[2.5, 1, 0, 46],
@@ -69,6 +75,13 @@ class Navigator():
                 #[1,4,0,12],
                 #[1,1,0,17],
                 #[2.5,1,0,20]
+=======
+                [0,0,0,0],
+                [1,0,0,2],
+                [1,1,0,4],
+                [0,1,0,6],
+                [0,0,0,8]
+>>>>>>> d9209facffca89125269d4ec9c63bb0c1c99962d
                 ])
         elif traj_id == 2: # circle
             num_pts = 20
