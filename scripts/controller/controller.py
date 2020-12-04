@@ -7,7 +7,6 @@ import numpy.linalg as npl
 import scipy.signal as sps
 import scipy.interpolate as spi
 
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool, Float32MultiArray

@@ -9,7 +9,6 @@ from enum import Enum
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
 
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
