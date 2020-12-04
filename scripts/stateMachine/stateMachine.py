@@ -9,7 +9,6 @@ from enum import Enum
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
 import rosnode
 
 from ar_commander.msg import State, Trajectory
@@ -125,11 +124,10 @@ class StateMachine():
 
 if __name__ == '__main__':
     env = rospy.get_param("ENV")
-    sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
     if env == "sim":
-        import configs.sim_params as params
+        import sim_params as params
     elif env == "hardware":
-        import configs.hardware_params as params
+        import hardware_params as params
     else:
         raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 

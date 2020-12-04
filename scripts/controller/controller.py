@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import rospy
 import time
 import numpy as np
@@ -8,21 +7,19 @@ import numpy.linalg as npl
 import scipy.signal as sps
 import scipy.interpolate as spi
 
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
-
+from stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
 
 env = rospy.get_param("ENV")
 if env == "sim":
-    import configs.sim_params as params
+    import sim_params as params
 elif env == "hardware":
-    import configs.hardware_params as params
+    import hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
-from scripts.stateMachine.stateMachine import Mode
-import configs.robot_v1 as rcfg
+import robot_v1 as rcfg
 
 class Controller(object):
     def __init__(self, ctrl_tf):
