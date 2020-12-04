@@ -9,9 +9,9 @@ from ar_commander.msg import State, ControllerCmd, Decawave
 
 env = rospy.get_param("ENV")
 if env == "sim":
-    import sim_params as params
+    import configs.sim_params as params
 elif env == "hardware":
-    import hardware_params as params
+    import configs.hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 

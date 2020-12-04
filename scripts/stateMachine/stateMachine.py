@@ -126,9 +126,9 @@ class StateMachine():
 if __name__ == '__main__':
     env = rospy.get_param("ENV")
     if env == "sim":
-        import sim_params as params
+        import configs.sim_params as params
     elif env == "hardware":
-        import hardware_params as params
+        import configs.hardware_params as params
     else:
         raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
     from scripts.utils import wrapAngle
