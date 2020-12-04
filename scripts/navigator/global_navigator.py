@@ -9,12 +9,12 @@ from std_msgs.msg import Int8
 
 env = "hardware" #rospy.get_param("ENV")
 if env == "sim":
-    import configs.sim_params as params
+    import sim_params as params
 elif env == "hardware":
-    import configs.hardware_params as params
+    import hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-from scripts.stateMachine.stateMachine import Mode
+from stateMachine.stateMachine import Mode
 
 
 class GlobalNavigator():

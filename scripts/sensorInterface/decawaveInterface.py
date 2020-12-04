@@ -7,10 +7,8 @@ import numpy as np
 import collections
 from ar_commander.msg import Decawave
 
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
-
-import configs.hardware_params as params
-from scripts.utils import wrapAngle
+import hardware_params as params
+from utils import wrapAngle
 
 PORT1 = params.decawave_ports[0]  # sensor 1 usb port: Y axis arm of robot
 PORT2 = params.decawave_ports[1]  # sensor 2 usb port: X axis arm of robot
