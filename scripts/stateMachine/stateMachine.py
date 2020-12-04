@@ -9,21 +9,21 @@ from enum import Enum
 import numpy as np
 import numpy.linalg as npl
 import rospy
+import rosnode
 
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
 
-
 RATE = 10
 INIT_TIME = 5   # Minimum time to remain in init mode
-POS_THRESH = 0.05   # Position error threshold to determine if trajectory is finished
-THETA_THRESH = 0.1  # theta error threshold...
+
 
 class Mode(Enum):
     """State machine modes"""
     INIT         = 0
     IDLE         = 1
     TRAJECTORY   = 2
+
 
 class StateMachine():
     def __init__(self):
@@ -64,11 +64,12 @@ class StateMachine():
 
     ## Decision Fuctions
     def hasInitialized(self):
-        # TODO: add more checks (is teensy running, do we have a battery measurement etc)
+        # TODO: add more checks (battery measurement etc)
         check1 = rospy.get_rostime() - self.mode_start_time > rospy.Duration.from_sec(INIT_TIME)
-        check2 = self.pos is not None
+        check2 = self.pos is not None # check decawave and estimator
+        check3 = rosnode.rosnode_ping(rospy.get_namespace() + rospy.get_param("ros_serial_node"), max_count=1) # check teensy
 
-        if check1 and check2:
+        if check1 and check2 and check3:
             return True
         return False
 
@@ -80,8 +81,8 @@ class StateMachine():
 
     def trajectoryFinished(self):
         wp_final = self.trajectory[-1,:]
-        check1 = npl.norm(self.pos - wp_final[0:2]) < POS_THRESH
-        check2 = self.theta - wp_final[2] < THETA_THRESH
+        check1 = npl.norm(self.pos - wp_final[0:2]) < params.wp_threshold
+        check2 = np.abs(self.theta - wp_final[2]) < params.theta_threshold
         check3 = self.last_wp_flag
         if check1 and check2 and check3:
             return True
@@ -122,6 +123,14 @@ class StateMachine():
             rate.sleep()
 
 if __name__ == '__main__':
+    env = rospy.get_param("ENV")
+    if env == "sim":
+        import sim_params as params
+    elif env == "hardware":
+        import hardware_params as params
+    else:
+        raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
+
     state_machine = StateMachine()
     state_machine.run()
 

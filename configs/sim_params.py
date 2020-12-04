@@ -6,13 +6,12 @@ max_vel = 3                                # m/s
 
 wp_threshold = 0.25                        # distance threshold at which we transition to next waypoint (m)
 
-thetaControllerGains = {'kp':3, 'ki':0.03, 'kd':5e-2}
+theta_threshold = np.pi/8				   # robot theta threshold at which we transition to next waypoint (rad)
 
-pointControllerGains = {'kp':0.5, 'kd':0}
+trajectoryControllerTF = {'num': np.array([ 0.63238478, -0.63175271]), 'den': np.array([ 1.        , -1.36724737,  0.36787944])}
 
-trajectoryControllerGains = {'kp_pos':0.25, 'kp_th':0.75, 'kd_pos':0.5, 'k_ol':0.5}
+# filter params obtained from data and testing at: AR1-142
+# Q : covariance on the process noise
+positionFilterParams = {"Q": 0.8 * np.eye(2), "Q_d": 0.8 * np.eye(2)}
 
-# noise/uncertainty estimate on predict (Q) meas. (R) process and derivatives (d)
-positionFilterParams = {'Q':10*np.eye(2), 'Q_d':100*np.eye(2), 'R':0.01*np.eye(2), 'R_d':100*np.eye(2)}
-
-thetaFilterParams = {'Q':10, 'Q_d':100, 'R':0.01}
+thetaFilterParams = {"Q": 0.1, "Q_d": 0.1}

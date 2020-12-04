@@ -4,11 +4,10 @@ import numpy as np
 import numpy.linalg as npl
 import rospy
 
-from astar import AStar, DetOccupancyGrid2D
-from stateMachine import Mode
-
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
+from astar import AStar, DetOccupancyGrid2D
+from stateMachine.stateMachine import Mode
 
 
 class Navigator():
