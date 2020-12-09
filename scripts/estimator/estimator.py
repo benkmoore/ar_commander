@@ -16,7 +16,7 @@ else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
 from utils import wrapAngle
-import robot_v1 as rcfg
+import configs.robot_v1 as rcfg
 
 RATE = 100
 

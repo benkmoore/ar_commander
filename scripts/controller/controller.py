@@ -21,7 +21,7 @@ else:
 from stateMachine.stateMachine import Mode
 from controller import formation_controller
 from utils import wrapAngle
-import robot_v1 as rcfg
+import configs.robot_v1 as rcfg
 
 
 class TrajectoryController():
