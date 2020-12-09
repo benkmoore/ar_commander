@@ -11,7 +11,7 @@ from stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
 
-env = rospy.get_param("ENV")
+env = "sim" #rospy.get_param("ENV")
 if env == "sim":
     import sim_params as params
 elif env == "hardware":
