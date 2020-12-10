@@ -1,0 +1,13 @@
+
+CONTROLLER_RATE: 10                       # rate in Hz
+
+max_vel: 3                                # m/s
+wp_threshold: 0.25                        # distance threshold at which we transition to next waypoint (m)
+theta_threshold: rad(pi/8)                # robot theta threshold at which we transition to next waypoint (rad)
+
+# controller params
+controller_tf: {"num": [ 0.63238478, -0.63175271], "den": [ 1.        , -1.36724737,  0.36787944]}
+
+# localization filter params: AR1-142
+positionFilterParams: {"Q": 0.8, "Q_d": 0.8}
+thetaFilterParams: {"Q": 0.1, "Q_d": 0.1}
