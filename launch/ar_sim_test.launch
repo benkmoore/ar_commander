@@ -13,10 +13,10 @@
         </include>
 
         <!-- launch ar_commander -->
-        <node pkg="ar_commander" type="estimator.py" name="Estimator" output="screen" />
+        <!-- <node pkg="ar_commander" type="estimator.py" name="Estimator" output="screen" /> -->
         <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
         <node pkg="ar_commander" type="navigator_test.py" name="Navigator" output="screen" />
-        <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" />
+        <!-- <node pkg="ar_commander" type="controller.py" name="Controller" output="screen" /> -->
 
         <!-- Launch teensy replicator -->
         <arg name="ros_serial_node" value="rosserial" />

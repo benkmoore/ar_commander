@@ -67,9 +67,9 @@ class StateMachine():
         # TODO: add more checks (battery measurement etc)
         check1 = rospy.get_rostime() - self.mode_start_time > rospy.Duration.from_sec(INIT_TIME)
         check2 = self.pos is not None # check decawave and estimator
-        # check3 = rosnode.rosnode_ping(rospy.get_namespace() + rospy.get_param("ros_serial_node"), max_count=1) # check teensy
+        check3 = rosnode.rosnode_ping(rospy.get_namespace() + rospy.get_param("ros_serial_node"), max_count=1) # check teensy
 
-        if check1 and check2: # and check3:
+        if check1 and check2 and check3:
             return True
         return False
 

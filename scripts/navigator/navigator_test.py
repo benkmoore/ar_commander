@@ -25,7 +25,7 @@ class Navigator():
         self.mode = Mode(msg.data)
 
     def loadTrajectory(self):
-        traj_id = 4 # specify what trajectory we want to use
+        traj_id = 1 # specify what trajectory we want to use
 
         if traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
