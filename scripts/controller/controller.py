@@ -7,10 +7,10 @@ import numpy.linalg as npl
 import scipy.signal as sps
 import scipy.interpolate as spi
 
-from configs.robotConfig import robotConfig
-from stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
+from stateMachine.stateMachine import Mode
+from utils.utils import robotConfig
 
 
 class Controller(object):
