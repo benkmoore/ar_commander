@@ -31,7 +31,7 @@ class TrajectoryController():
         # append current pos as start pt to traj
         t0 = 0
         if self.trajectory[0, 3] == t0:
-            t0 = self.trajectory[0, 3] - 1
+            t0 = self.trajectory[0, 3] - 1 # time must be strictly increasing to fit spline
         start_pt = np.hstack((pos, self.trajectory[0,2], t0))
         self.trajectory = np.vstack((start_pt, self.trajectory))
 
