@@ -6,7 +6,7 @@ cd ~/catkin_ws/
 rm -r devel/ build/
 
 cd ~/catkin_ws/src/ar_commander/
-touch CMakelists.txt
+touch CMakeLists.txt
 
 cd ~/catkin_ws/
 catkin_make
