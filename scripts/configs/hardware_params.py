@@ -25,6 +25,6 @@ thetaFilterParams = {"Q": 1, "Q_d": 1}
 
 pos_measurement_std = 0.035 # position measurement standard deviation (m)
 
-decawave_ports = ['/dev/ttyACM1','/dev/ttyACM2']
+decawave_ports = ['/dev/tty-Y','/dev/tty-X']
 
 object_offset = {"x": 0.75, "y": 1.2}
