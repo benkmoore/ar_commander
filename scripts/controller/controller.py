@@ -8,69 +8,106 @@ import scipy.signal as sps
 import scipy.interpolate as spi
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
-from std_msgs.msg import Int8, Bool
+from std_msgs.msg import Int8, Bool, Float32MultiArray
 from stateMachine.stateMachine import Mode
-from utils.utils import robotConfig
+from utils.utils import robotConfig, wrapAngle
 
 
-class Controller(object):
-    def __init__(self):
-        self.num = rospy.get_param("controller_tf/num")
-        self.den = rospy.get_param("controller_tf/den")
-        self.z = None
+class TrajectoryController():
+    def __init__(self, tf_state, tf_state_dot):
+        self.tf_state = tf_state
+        self.tf_state_dot = tf_state_dot
+        self.z_state = None
+        self.z_state_dot = None
 
+        # set max vel and omega constraints
         self.max_vel = rospy.get_param("max_vel")
+        self.max_omega = rospy.get_param("max_omega")
 
-    def saturateCmds(self, v_cmd):
-        return np.clip(v_cmd, -self.max_vel, self.max_vel)
-
-    def controllerTF(self, error):
-        if self.z is None:
-            self.z = sps.lfiltic(self.num, self.den, y=np.zeros_like(self.den)) # initial filter delays
-            self.z = np.tile(self.z, error.shape)
-        u, self.z = sps.lfilter(self.num, self.den, error, axis=1, zi=self.z)
-        v_pos = u[0:2, 0] # vel cmd due to pos error
-        v_vel = u[3:, 0]  # vel cmd due to vel error
-        v_cmd = v_pos + v_vel
-        omega_cmd = u[2, 0] # omega cmd due to theta error
-
-        return v_cmd, omega_cmd
-
-
-class TrajectoryController(Controller):
-    def __init__(self):
-        super(TrajectoryController, self).__init__()
+        self.trajectory = None
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
-        if len(trajectory) == 1:
-            default_start_pt = np.hstack((pos, theta, 0))
-            trajectory = np.vstack((default_start_pt, trajectory))
-        x, y, theta, t = np.split(trajectory.reshape(-1, 4), 4, axis=1)
-        t = t.reshape(-1)
+        self.trajectory = trajectory.reshape(-1, 4)
+        # append current pos as start pt to traj
+        t0 = 0
+        if self.trajectory[0, 3] == t0:
+            t0 = self.trajectory[0, 3] - 1 # time must be strictly increasing to fit spline
+        start_pt = np.hstack((pos, self.trajectory[0,2], t0))
+        self.trajectory = np.vstack((start_pt, self.trajectory))
 
+        # fit splines
+        x, y, theta, t = np.split(self.trajectory, 4, axis=1)
+        t = t.reshape(-1)
         self.x_spline = spi.CubicSpline(t, x, bc_type='clamped', extrapolate='False') # output: x_des, input: t
         self.y_spline = spi.CubicSpline(t, y, bc_type='clamped', extrapolate='False') # output: y_des, input: t
         self.theta_spline = spi.CubicSpline(t, theta, bc_type='clamped', extrapolate='False') # output: theta_des, input: t
 
         self.v_x = self.x_spline.derivative()
         self.v_y = self.y_spline.derivative()
+        self.omega = self.theta_spline.derivative()
 
         self.t = t
         self.init_traj_time = time.time()
 
-    def getControlCmds(self, pos, theta, vel):
-        t = time.time() - self.init_traj_time
-        if t < self.t[0]: t = self.t[0] # bound calls between start and end time
-        if t > self.t[-1]: t = self.t[-1]
+    def getControlCmds(self, pos, theta, vel, omega):
+        if self.trajectory is not None: # check trajectory has initialized
+            t = time.time() - self.init_traj_time
+            if t < self.t[0]: t = self.t[0] # bound calls between start and end time
+            if t > self.t[-1]: t = self.t[-1]
 
-        vel_des = np.array([self.v_x(t), self.v_y(t)])
-        pt_des = np.array([self.x_spline(t), self.y_spline(t), self.theta_spline(t)])
-        state_des = np.vstack((pt_des, vel_des))
-        state_curr = np.hstack((pos, theta, vel)).reshape(-1,1)
-        error = (state_des-state_curr)
+            state_des = np.vstack((self.x_spline(t), self.y_spline(t), wrapAngle(self.theta_spline(t))))
+            state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
 
-        v_cmd, omega_cmd = self.controllerTF(error)
-        v_cmd = self.saturateCmds(v_cmd) # saturate v_cmd
+            error = state_des - np.vstack((pos.reshape(-1,1), theta))
+            error[2] = wrapAngle(error[2]) # wrap theta error to [-pi, pi]
+            error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
+
+            v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
+            v_cmd, omega_cmd = self.saturateCmds(v_cmd, omega_cmd) # saturate v_cmd and omega_cmd
+
+        else: # default behaviour
+            v_cmd = np.zeros(2)
+            omega_cmd = 0
+
+        return v_cmd, omega_cmd
+
+    def saturateCmds(self, v_cmd, omega_cmd):
+        if npl.norm(v_cmd) > self.max_vel: # constrain max vel
+            v_cmd = self.max_vel * v_cmd / npl.norm(v_cmd)
+
+        omega_cmd = np.clip(omega_cmd, -self.max_omega, self.max_omega) # constrain max omega
+
+        return v_cmd, omega_cmd
+
+    def runController(self, error, error_dot, ref_dot_feedfwd):
+        if self.z_state is None:
+            self.z_state = sps.lfiltic(self.tf_state['num'], self.tf_state['den'], y=np.zeros_like(self.tf_state['den'])) # initial filter delays
+            self.z_state = np.tile(self.z_state, error.shape)
+            self.z_state_dot = sps.lfiltic(self.tf_state_dot['num'], self.tf_state_dot['den'], y=np.zeros_like(self.tf_state_dot['den']))
+            self.z_state_dot = np.tile(self.z_state_dot, error_dot.shape)
+
+        u_state, self.z_state = sps.lfilter(self.tf_state['num'], self.tf_state['den'], error, axis=1, zi=self.z_state)
+        u_state_dot, self.z_state_dot = sps.lfilter(self.tf_state_dot['num'], self.tf_state_dot['den'], error_dot, axis=1, zi=self.z_state_dot)
+        u = u_state + u_state_dot + ref_dot_feedfwd
+
+        v_cmd = u[0:2, 0]
+        omega_cmd = u[2, 0]
+
+        return v_cmd, omega_cmd
+
+    def runController(self, error, error_dot, ref_dot_feedfwd):
+        if self.z_state is None:
+            self.z_state = sps.lfiltic(self.tf_state['num'], self.tf_state['den'], y=np.zeros_like(self.tf_state['den'])) # initial filter delays
+            self.z_state = np.tile(self.z_state, error.shape)
+            self.z_state_dot = sps.lfiltic(self.tf_state_dot['num'], self.tf_state_dot['den'], y=np.zeros_like(self.tf_state_dot['den']))
+            self.z_state_dot = np.tile(self.z_state_dot, error_dot.shape)
+
+        u_state, self.z_state = sps.lfilter(self.tf_state['num'], self.tf_state['den'], error, axis=1, zi=self.z_state)
+        u_state_dot, self.z_state_dot = sps.lfilter(self.tf_state_dot['num'], self.tf_state_dot['den'], error_dot, axis=1, zi=self.z_state_dot)
+        u = u_state + u_state_dot + ref_dot_feedfwd
+
+        v_cmd = u[0:2, 0]
+        omega_cmd = u[2, 0]
 
         return v_cmd, omega_cmd
 
@@ -84,8 +121,11 @@ class ControlNode():
     def __init__(self):
         rospy.init_node('controller', anonymous=True)
 
-        # retrieve params
+        # retrieve robot params and thresholds
         self.rcfg = robotConfig()
+        self.wp_threshold = rospy.get_param("wp_threshold")
+        self.theta_threshold = rospy.get_param("theta_threshold")
+        self.time_threshold = rospy.get_param("time_threshold")
 
         # current state
         self.pos = None
@@ -102,7 +142,7 @@ class ControlNode():
         self.traj_idx = 0
 
         # initialize controllers
-        self.trajectoryController = TrajectoryController()
+        self.trajectoryController = TrajectoryController(rospy.get_param("ctrl_tf_state"), rospy.get_param("ctrl_tf_state_dot"))
 
         # output commands
         self.wheel_phi_cmd = None
@@ -142,24 +182,6 @@ class ControlNode():
         self.mode = Mode(msg.data)
 
     ## Helper Functions
-    def getWaypoint(self):
-        if self.trajectory is not None:
-            # determine waypoint
-            wp = self.trajectory[self.traj_idx, :]
-
-            # advance waypoints
-            if npl.norm(wp[0:2]-self.pos) < self.wp_threshold and \
-                np.abs(wp[2]-self.theta) < self.theta_threshold and \
-                self.traj_idx < self.trajectory.shape[0]-1:
-                self.traj_idx += 1
-                wp = self.trajectory[self.traj_idx, :]
-            if self.traj_idx == 0:
-                wp_prev = np.hstack([self.pos, self.theta])
-            else:
-                wp_prev = self.trajectory[self.traj_idx-1, :]
-
-            return wp, wp_prev
-
     def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
         """Convert velocity and omega commands to motor inputs"""
 
@@ -178,18 +200,19 @@ class ControlNode():
         v_wheel = npl.norm(v_xy, axis=0)
         phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
 
-        # pick closest phi
-        phi_diff = phi_cmd - self.phi_prev
-        idx = abs(phi_diff) > np.pi/2
-        phi_cmd -= np.pi*np.sign(phi_diff)*idx
-        v_wheel *= -1*idx + 1*~idx
+        if self.rcfg.enable_reverse:
+            # pick closest phi
+            phi_diff = phi_cmd - self.phi_prev
+            idx = abs(phi_diff) > np.pi/2
+            phi_cmd -= np.pi*np.sign(phi_diff)*idx
+            v_wheel *= -1*idx + 1*~idx
 
-        # enforce physical bounds
-        idx_upper = phi_cmd > self.rcfg.phi_bounds[1]     # violates upper bound
-        idx_lower = phi_cmd < self.rcfg.phi_bounds[0]     # violates lower bound
+            # enforce physical bounds
+            idx_upper = phi_cmd > self.rcfg.phi_bounds[1]     # violates upper bound
+            idx_lower = phi_cmd < self.rcfg.phi_bounds[0]     # violates lower bound
 
-        phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
-        v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
+            phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
+            v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
         # map to desired omega (angular velocity) of wheels: w = v/r
         w_wheel = v_wheel/self.rcfg.wheel_radius
@@ -207,9 +230,12 @@ class ControlNode():
         self.last_waypoint_flag = False
 
         if self.mode == Mode.TRAJECTORY:
-            wp, wp_prev = self.getWaypoint()
-            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel)
-            if self.traj_idx == self.trajectory.shape[0]-1:
+            v_des, w_des = self.trajectoryController.getControlCmds(self.pos, self.theta, self.vel, self.omega)
+            t = 0
+            if self.trajectoryController.trajectory is not None: # check trajectory is initiliazed
+                t = time.time() - self.trajectoryController.init_traj_time
+            if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < self.wp_threshold and \
+                abs(t - self.trajectoryController.t[-1]) < self.time_threshold: # check if near end pos and end time
                 self.last_waypoint_flag = True
 
             self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
@@ -224,7 +250,6 @@ class ControlNode():
         cmd.phi_arr.data = self.wheel_phi_cmd
         cmd.robot_vel.data = self.robot_v_cmd
         cmd.robot_omega.data = self.robot_omega_cmd
-
         self.pub_cmds.publish(cmd)
 
         flag = Bool()
