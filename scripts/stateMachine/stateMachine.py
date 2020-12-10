@@ -9,7 +9,6 @@ from enum import Enum
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
 import rosnode
 
 from ar_commander.msg import State, Trajectory
@@ -127,7 +126,6 @@ class StateMachine():
             rate.sleep()
 
 if __name__ == '__main__':
-    sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
     state_machine = StateMachine()
     state_machine.run()
 

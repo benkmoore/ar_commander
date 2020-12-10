@@ -3,9 +3,6 @@
 import numpy as np
 import numpy.linalg as npl
 import rospy
-import sys
-
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
 
 from configs.robotConfig import robotConfig
 from localization_filter import LocalizationFilter

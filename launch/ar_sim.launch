@@ -8,10 +8,6 @@
         <rosparam command="load" file="$(find ar_sim)/configs/sim_interface_params.yaml"/>
         <rosparam command="load" file="$(find ar_commander)/configs/hardware_params.yaml"/>
 
-        <!-- Set path to ar repos -->
-        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
-        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
-
         <!-- launch ar_sim -->
         <include file="$(find ar_sim)/launch/gazebo_sim.launch" >
             <arg name="robot_id" value="robot1" />

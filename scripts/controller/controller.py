@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import rospy
 import time
 import numpy as np
@@ -8,12 +7,11 @@ import numpy.linalg as npl
 import scipy.signal as sps
 import scipy.interpolate as spi
 
-sys.path.append(rospy.get_param("AR_COMMANDER_DIR"))
-
 from configs.robotConfig import robotConfig
-from scripts.stateMachine.stateMachine import Mode
+from stateMachine.stateMachine import Mode
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool
+
 
 class Controller(object):
     def __init__(self):
