@@ -10,6 +10,11 @@ import scipy.interpolate as spi
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool, Float32MultiArray
 
+from stateMachine.stateMachine import Mode
+from controller import formation_controller
+from utils.utils import wrapAngle
+import configs.robot_v1 as rcfg
+
 env = rospy.get_param("ENV")
 if env == "sim":
     import configs.sim_params as params
@@ -17,11 +22,6 @@ elif env == "hardware":
     import configs.hardware_params as params
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-
-from stateMachine.stateMachine import Mode
-from controller import formation_controller
-from utils import wrapAngle
-import configs.robot_v1 as rcfg
 
 
 class TrajectoryController():

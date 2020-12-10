@@ -13,7 +13,7 @@ import rosnode
 
 from ar_commander.msg import State, Trajectory
 from std_msgs.msg import Int8, Bool
-
+from utils.utils import wrapAngle
 
 RATE = 10
 INIT_TIME = 5   # Minimum time to remain in init mode
@@ -131,7 +131,6 @@ if __name__ == '__main__':
         import configs.hardware_params as params
     else:
         raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-    from utils import wrapAngle
 
     state_machine = StateMachine()
     state_machine.run()

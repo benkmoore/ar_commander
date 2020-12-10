@@ -6,6 +6,7 @@ import rospy
 
 from localization_filter import LocalizationFilter
 from ar_commander.msg import State, ControllerCmd, Decawave
+from utils.utils import wrapAngle
 
 env = rospy.get_param("ENV")
 if env == "sim":
@@ -15,7 +16,6 @@ elif env == "hardware":
 else:
     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
-from utils import wrapAngle
 import configs.robot_v1 as rcfg
 
 RATE = 100
