@@ -3,8 +3,10 @@
 	<arg name="robot_tf"/>
 	<arg name="init_pose"/>
 
-	<!-- Set sim environment -->
-	<param name="ENV" value="sim" />
+    <!-- load params -->
+    <rosparam command="load" file="$(find ar_commander)/configs/software_sim_params.yaml"/>
+    <rosparam command="load" file="$(find ar_sim)/configs/sim_interface_params.yaml"/>
+    <rosparam command="load" file="$(find ar_commander)/configs/hardware_params.yaml"/>
 
 	<!-- Spawn robot in sim -->
 	<include file="$(find ar_sim)/launch/gazebo_sim.launch" >

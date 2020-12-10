@@ -9,19 +9,8 @@ import scipy.interpolate as spi
 
 from ar_commander.msg import Trajectory, ControllerCmd, State
 from std_msgs.msg import Int8, Bool, Float32MultiArray
-
-env = rospy.get_param("ENV")
-if env == "sim":
-    import sim_params as params
-elif env == "hardware":
-    import hardware_params as params
-else:
-    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-
 from stateMachine.stateMachine import Mode
-from controller import formation_controller
-from utils import wrapAngle
-import robot_v1 as rcfg
+from utils.utils import robotConfig, wrapAngle
 
 
 class TrajectoryController():
@@ -31,15 +20,24 @@ class TrajectoryController():
         self.z_state = None
         self.z_state_dot = None
 
+        # set max vel and omega constraints
+        self.max_vel = rospy.get_param("max_vel")
+        self.max_omega = rospy.get_param("max_omega")
+
         self.trajectory = None
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         self.trajectory = trajectory.reshape(-1, 4)
-        start_pt = np.hstack((pos, self.trajectory[0,2], 0))
+        # append current pos as start pt to traj
+        t0 = 0
+        if self.trajectory[0, 3] == t0:
+            t0 = self.trajectory[0, 3] - 1
+        start_pt = np.hstack((pos, self.trajectory[0,2], t0))
         self.trajectory = np.vstack((start_pt, self.trajectory))
+
+        # fit splines
         x, y, theta, t = np.split(self.trajectory, 4, axis=1)
         t = t.reshape(-1)
-
         self.x_spline = spi.CubicSpline(t, x, bc_type='clamped', extrapolate='False') # output: x_des, input: t
         self.y_spline = spi.CubicSpline(t, y, bc_type='clamped', extrapolate='False') # output: y_des, input: t
         self.theta_spline = spi.CubicSpline(t, theta, bc_type='clamped', extrapolate='False') # output: theta_des, input: t
@@ -65,7 +63,7 @@ class TrajectoryController():
             error_dot = state_dot_des - np.vstack((vel.reshape(-1,1), omega))
 
             v_cmd, omega_cmd = self.runController(error, error_dot, state_dot_des)
-            v_cmd, omega_cmd = self.saturateCmds(v_cmd) # saturate v_cmd and omega_cmd
+            v_cmd, omega_cmd = self.saturateCmds(v_cmd, omega_cmd) # saturate v_cmd and omega_cmd
 
         else: # default behaviour
             v_cmd = np.zeros(2)
@@ -74,10 +72,10 @@ class TrajectoryController():
         return v_cmd, omega_cmd
 
     def saturateCmds(self, v_cmd, omega_cmd):
-        if npl.norm(v_cmd) > params.max_vel: # constrain max vel
-            v_cmd = params.max_vel * v_cmd / npl.norm(v_cmd)
+        if npl.norm(v_cmd) > self.max_vel: # constrain max vel
+            v_cmd = self.max_vel * v_cmd / npl.norm(v_cmd)
 
-        omega_cmd = np.clip(omega_cmd, -params.max_omega, params.max_omega) # constrain max omega
+        omega_cmd = np.clip(omega_cmd, -self.max_omega, self.max_omega) # constrain max omega
 
         return v_cmd, omega_cmd
 
@@ -96,9 +94,6 @@ class TrajectoryController():
         omega_cmd = u[2, 0]
 
         return v_cmd, omega_cmd
-
-    def saturateCmds(self, v_cmd):
-        return np.clip(v_cmd, -params.max_vel, params.max_vel)
 
     def runController(self, error, error_dot, ref_dot_feedfwd):
         if self.z_state is None:
@@ -125,6 +120,13 @@ class ControlNode():
 
     def __init__(self):
         rospy.init_node('controller', anonymous=True)
+
+        # retrieve robot params and thresholds
+        self.rcfg = robotConfig()
+        self.wp_threshold = rospy.get_param("wp_threshold")
+        self.theta_threshold = rospy.get_param("theta_threshold")
+        self.time_threshold = rospy.get_param("time_threshold")
+
         # current state
         self.pos = None
         self.theta = None
@@ -133,14 +135,14 @@ class ControlNode():
 
         self.mode = None
 
-        self.phi_prev = np.zeros(rcfg.N)   # can initialize to 0 as it will only affect first command
+        self.phi_prev = np.zeros(self.rcfg.N)   # can initialize to 0 as it will only affect first command
 
         # navigation info
         self.trajectory = None
         self.traj_idx = 0
 
         # initialize controllers
-        self.trajectoryController = TrajectoryController(params.ctrl_tf_state, params.ctrl_tf_state_dot)
+        self.trajectoryController = TrajectoryController(rospy.get_param("ctrl_tf_state"), rospy.get_param("ctrl_tf_state_dot"))
 
         # output commands
         self.wheel_phi_cmd = None
@@ -149,6 +151,10 @@ class ControlNode():
         self.robot_omega_cmd = None
 
         self.last_waypoint_flag = False
+
+        # controller thresholds
+        self.wp_threshold = rospy.get_param("wp_threshold")
+        self.theta_threshold = rospy.get_param("theta_threshold")
 
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
@@ -184,8 +190,8 @@ class ControlNode():
                       [-np.sin(self.theta), np.cos(self.theta)]])
         v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
 
-        v_th1 = np.vstack([-rcfg.R1*omega_cmd, np.zeros(rcfg.N/2)])
-        v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
+        v_th1 = np.vstack([-self.rcfg.R1*omega_cmd, np.zeros(self.rcfg.N/2)])
+        v_th2 = np.vstack([np.zeros(self.rcfg.N/2), self.rcfg.R2*omega_cmd])
         v_th_rf = np.hstack([v_th1, v_th2])
 
         v_xy = v_cmd_rf + v_th_rf
@@ -194,7 +200,7 @@ class ControlNode():
         v_wheel = npl.norm(v_xy, axis=0)
         phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
 
-        if rcfg.enable_reverse:
+        if self.rcfg.enable_reverse:
             # pick closest phi
             phi_diff = phi_cmd - self.phi_prev
             idx = abs(phi_diff) > np.pi/2
@@ -202,22 +208,22 @@ class ControlNode():
             v_wheel *= -1*idx + 1*~idx
 
             # enforce physical bounds
-            idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
-            idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
+            idx_upper = phi_cmd > self.rcfg.phi_bounds[1]     # violates upper bound
+            idx_lower = phi_cmd < self.rcfg.phi_bounds[0]     # violates lower bound
 
             phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
             v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
 
         # map to desired omega (angular velocity) of wheels: w = v/r
-        w_wheel = v_wheel / rcfg.wheel_radius
+        w_wheel = v_wheel/self.rcfg.wheel_radius
 
         return w_wheel, phi_cmd
 
     ## Main Loops
     def controlLoop(self):
         # default behavior
-        self.wheel_w_cmd = np.zeros(rcfg.N)
-        self.wheel_phi_cmd = np.zeros(rcfg.N) # rads
+        self.wheel_w_cmd = np.zeros(self.rcfg.N)
+        self.wheel_phi_cmd = np.zeros(self.rcfg.N) # rads
         self.robot_v_cmd = np.zeros(2)
         self.robot_omega_cmd = 0
 
@@ -228,8 +234,8 @@ class ControlNode():
             t = 0
             if self.trajectoryController.trajectory is not None: # check trajectory is initiliazed
                 t = time.time() - self.trajectoryController.init_traj_time
-            if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < params.wp_threshold and \
-                abs(t - self.trajectoryController.t[-1]) < params.time_threshold: # check if near end pos and end time
+            if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < self.wp_threshold and \
+                abs(t - self.trajectoryController.t[-1]) < self.time_threshold: # check if near end pos and end time
                 self.last_waypoint_flag = True
 
             self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
@@ -252,7 +258,7 @@ class ControlNode():
 
 
     def run(self):
-        rate = rospy.Rate(params.CONTROLLER_RATE)
+        rate = rospy.Rate(rospy.get_param("CONTROLLER_RATE"))
         while not rospy.is_shutdown():
             self.controlLoop()
             self.publish()
