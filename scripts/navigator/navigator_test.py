@@ -66,7 +66,7 @@ class Navigator():
             num_pts = 20
             t = np.linspace(0,2*np.pi, num_pts)[:, np.newaxis]
             time = np.linspace(1, 30, num_pts)[:, np.newaxis]
-            self.trajectory = np.hstack([np.sin(t), np.cos(t), t, time])
+            self.trajectory = np.hstack([np.sin(t), np.cos(t), np.zeros(t.shape), time])
         elif traj_id == 3: # sine wave
             num_pts = 100
             t = np.linspace(0.1, 5.0, num_pts)[:, np.newaxis]
@@ -75,11 +75,11 @@ class Navigator():
             self.trajectory = np.hstack([t, s, np.zeros(t.shape), time])
         elif traj_id == 4: # figure of eight
             t = np.linspace(0,2*np.pi, 20)[:, np.newaxis]
-            a = 3
+            a = 2
             x = a*np.sin(t)
             y = a*np.sin(t)*np.cos(t)
             time = np.linspace(1, 40, 20)[:, np.newaxis]
-            self.trajectory = np.hstack([x, y, t, time])
+            self.trajectory = np.hstack([x, y, np.zeros(t.shape), time])
         elif traj_id == 5: # rotate on spot
             num_pts = 20
             t = np.linspace(0,2*np.pi, num_pts)[:, np.newaxis]
@@ -91,7 +91,7 @@ class Navigator():
             t = np.linspace(0,-2*np.pi, num_pts)[:, np.newaxis]
             y = np.linspace(0,10, num_pts)[:, np.newaxis]
             x = np.zeros(t.shape)
-            self.trajectory = np.hstack([x, y, t, time])
+            self.trajectory = np.hstack([x, y, np.zeros(t.shape), time])
         else:
             raise ValueError("Invalid traj_id")
 
