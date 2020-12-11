@@ -6,14 +6,6 @@ import sys
 
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
-
-env = "hardware" #rospy.get_param("ENV")
-if env == "sim":
-    import sim_params as params
-elif env == "hardware":
-    import hardware_params as params
-else:
-    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 from stateMachine.stateMachine import Mode
 
 
@@ -28,6 +20,7 @@ class GlobalNavigator():
 
         self.start_wp = None
         self.desiredSpeed = 0.3 # m/s
+        self.startup_time = rospy.get_param("startup_time")
 
         self.pos1 = None
         self.pos2 = None
@@ -47,11 +40,12 @@ class GlobalNavigator():
         self.pub_trajectory3 = rospy.Publisher('/robot3/cmd_trajectory', Trajectory, queue_size=10)
         self.pub_trajectory4 = rospy.Publisher('/robot4/cmd_trajectory', Trajectory, queue_size=10)
 
+        object_offset = rospy.get_param("object_offset")
         self.robot_offsets = {
-            1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]), #
-            2: np.array([ params.object_offset["x"], -params.object_offset["y"], np.pi/2, 0]),
-            3: np.array([ params.object_offset["x"],  params.object_offset["y"], np.pi, 0]),
-            4: np.array([-params.object_offset["x"],  params.object_offset["y"], -np.pi/2, 0])
+            1: np.array([-object_offset["x"], -object_offset["y"], 0, 0]), #
+            2: np.array([ object_offset["x"], -object_offset["y"], np.pi/2, 0]),
+            3: np.array([ object_offset["x"],  object_offset["y"], np.pi, 0]),
+            4: np.array([-object_offset["x"],  object_offset["y"], -np.pi/2, 0])
         }
 
         self.robot_publishers = {
@@ -64,7 +58,7 @@ class GlobalNavigator():
     def calcTime(self):
         if self.pos1 is not None and self.pos2 is not None and self.pos3 is not None and self.pos4 is not None:
             self.start_wp = np.mean(np.vstack((self.pos1, self.pos2, self.pos3, self.pos4)))
-            prev_time = params.startup_time
+            prev_time = self.startup_time
             for i in range(0, self.trajectory.shape[0]):
                 self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + prev_time
                 self.start_wp = self.trajectory[i,0:2]

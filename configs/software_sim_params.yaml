@@ -1,6 +1,8 @@
 
 CONTROLLER_RATE: 10                       # rate in Hz
 
+startup_time: 6.0                         # s
+
 max_vel: 1                                # m/s
 max_omega: 0.175                          # rad/s
 
@@ -15,3 +17,6 @@ ctrl_tf_state_dot: {"num": [0.02469009], "den": [ 1.0, -0.97530991]}
 # localization filter params: AR1-142
 positionFilterParams: {"Q": 0.8, "Q_d": 0.8}
 thetaFilterParams: {"Q": 0.1, "Q_d": 0.1}
+
+# object offsets
+object_offset: {"x": 0.75, "y": 1.2}

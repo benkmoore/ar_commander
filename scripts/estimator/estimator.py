@@ -6,7 +6,7 @@ import rospy
 
 from localization_filter import LocalizationFilter
 from ar_commander.msg import State, ControllerCmd, Decawave
-from utils.utils import robotConfig
+from utils.utils import robotConfig, wrapAngle
 
 RATE = 100
 
@@ -79,10 +79,9 @@ class Estimator():
         self.pos_cov = None #covariance
         A_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.zeros((2,2)), np.zeros((2,2))]])
         B_pos = np.block([[self.dt*np.eye(2)], [np.eye(2)]])
-        C_pos = np.block([[np.eye(2), np.zeros((2,2))], [np.eye(2), np.zeros((2,2))]])
         Q_pos = np.block([[rospy.get_param("positionFilterParams/Q")*np.eye(2), np.zeros((2,2))],
                           [np.zeros((2,2)), rospy.get_param("positionFilterParams/Q_d")*np.eye(2)]])
-        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, C=C_pos, Q=Q_pos)
+        self.pos_filter = LocalizationFilter(x0=np.zeros(4), sigma0=10*np.eye(4), A=A_pos, B=B_pos, Q=Q_pos)
 
 
     def initThetaKF(self):
@@ -90,10 +89,9 @@ class Estimator():
         self.theta_cov = None #covariance
         A_theta = np.array([[1, 0], [0, 0]])
         B_theta = np.array([[self.dt],[1]])
-        C_theta = np.array([1, 0]).reshape(1,2)
         Q_theta = np.array([[rospy.get_param("thetaFilterParams/Q"), 0],
                             [0, rospy.get_param("thetaFilterParams/Q_d")]])
-        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, C=C_theta, Q=Q_theta, is_angle=True)
+        self.theta_filter = LocalizationFilter(x0=np.zeros(2), sigma0=10*np.eye(2), A=A_theta, B=B_theta, Q=Q_theta, is_angle=True)
 
 
     def getPosFilterInputs(self):

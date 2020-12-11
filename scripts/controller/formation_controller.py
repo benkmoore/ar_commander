@@ -13,14 +13,6 @@ import scipy.signal as sps
 import scipy.interpolate as spi
 import time
 
-env = rospy.get_param("ENV")
-if env == "sim":
-    import configs.sim_params as params
-elif env == "hardware":
-    import configs.hardware_params as params
-else:
-    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-
 # TODO:
 # Abstract this into hiarchical framework so that the tracking controller for
 # a single robot is independent of the consensus control on the formation
@@ -46,13 +38,14 @@ class RobotSubscriber:
 
 
 class FormationController():
-    def __init__(self):
+    def __init__(self, robot_offsets):
         # initialize graph
         self.graph = nx.DiGraph()
         self.robot_states = {}
         self.traj_idx = 0
 
         # create graph nodes and edges
+        self.robot_offsets = robot_offsets
         self.buildGraph()
 
         # assume same gains across all robots
@@ -66,10 +59,10 @@ class FormationController():
 
     def buildGraph(self):
         # TODO: convert to loops and combinations
-        self.graph.add_node("/robot1", offset=np.array([[-params.object_offset["x"]], [-params.object_offset["y"]], [0.0]]))
-        self.graph.add_node("/robot2", offset=np.array([[ params.object_offset["x"]], [-params.object_offset["y"]], [np.pi/2]]))
-        self.graph.add_node("/robot3", offset=np.array([[ params.object_offset["x"]], [ params.object_offset["y"]], [np.pi]]))
-        self.graph.add_node("/robot4", offset=np.array([[-params.object_offset["x"]], [ params.object_offset["y"]], [-np.pi/2]]))
+        self.graph.add_node("/robot1", offset=np.array(self.robot_offsets[1]))
+        self.graph.add_node("/robot2", offset=np.array(self.robot_offsets[2]))
+        self.graph.add_node("/robot3", offset=np.array(self.robot_offsets[3]))
+        self.graph.add_node("/robot4", offset=np.array(self.robot_offsets[4]))
 
         self.graph.add_edge("/robot1", "/robot2", weight=1)
         self.graph.add_edge("/robot1", "/robot3", weight=1)

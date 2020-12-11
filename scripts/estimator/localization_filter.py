@@ -51,7 +51,8 @@ class LocalizationFilter():
 
 
     def step(self, u, y, C, R):
-        self.predict(u)
+        if u.size > 0:
+            self.predict(u)
         if y.size > 0:
             self.update(y, C, R)
 

@@ -6,15 +6,8 @@ import rospy
 
 from ar_commander.msg import Trajectory, State
 from std_msgs.msg import Int8
-
-env = "hardware" #rospy.get_param("ENV")
-if env == "sim":
-    import sim_params as params
-elif env == "hardware":
-    import hardware_params as params
-else:
-    raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 from stateMachine.stateMachine import Mode
+
 
 class Navigator():
     def __init__(self):
@@ -28,13 +21,14 @@ class Navigator():
 
         self.start_wp = None
         self.desiredSpeed = 0.4 # m/s
+        self.startup_time = rospy.get_param("startup_time")
 
         # subscribers
-        rospy.Subscriber('/robot3/state_machine/mode', Int8, self.modeCallback)
-        rospy.Subscriber('/robot3/estimator/state', State, self.stateCallback)
+        rospy.Subscriber('/robot1/state_machine/mode', Int8, self.modeCallback)
+        rospy.Subscriber('/robot1/estimator/state', State, self.stateCallback)
 
         # publishers
-        self.pub_trajectory = rospy.Publisher('/robot3/cmd_trajectory', Trajectory, queue_size=10)
+        self.pub_trajectory = rospy.Publisher('/robot1/cmd_trajectory', Trajectory, queue_size=10)
 
     def modeCallback(self,msg):
         self.mode = Mode(msg.data)
@@ -45,7 +39,7 @@ class Navigator():
     def calcTime(self):
         if self.pos is not None:
             self.start_wp = self.pos
-            prev_time = params.startup_time
+            prev_time = self.startup_time
             for i in range(0, self.trajectory.shape[0]):
                 print(self.start_wp)
                 self.trajectory[i,3] = (npl.norm(self.trajectory[i,0:2] - self.start_wp) / self.desiredSpeed) + prev_time

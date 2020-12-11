@@ -15,9 +15,9 @@ from utils.utils import robotConfig, wrapAngle
 
 
 class TrajectoryController():
-    def __init__(self, tf_state, tf_state_dot):
-        self.tf_state = tf_state
-        self.tf_state_dot = tf_state_dot
+    def __init__(self, robot_offsets):
+        self.tf_state = rospy.get_param("ctrl_tf_state")
+        self.tf_state_dot = rospy.get_param("ctrl_tf_state_dot")
         self.z_state = None
         self.z_state_dot = None
         self.controller_error = None
@@ -28,13 +28,7 @@ class TrajectoryController():
         self.startup_time = rospy.get_param("startup_time")
 
         self.trajectory = None
-
-        self.robot_offsets = {
-            1: np.array([-params.object_offset["x"], -params.object_offset["y"], 0, 0]),
-            2: np.array([params.object_offset["x"], -params.object_offset["y"], np.pi/2, 0]),
-            3: np.array([params.object_offset["x"],  params.object_offset["y"], np.pi, 0]),
-            4: np.array([-params.object_offset["x"], params.object_offset["y"], -np.pi/2, 0])
-        }
+        self.robot_offsets = robot_offsets
 
     def fitSpline2Trajectory(self, trajectory, pos, theta):
         self.trajectory = trajectory.reshape(-1, 4)
@@ -124,6 +118,15 @@ class ControlNode():
         self.theta_threshold = rospy.get_param("theta_threshold")
         self.time_threshold = rospy.get_param("time_threshold")
 
+        # robot offsets
+        object_offset = rospy.get_param("object_offset")
+        self.robot_offsets = {
+            1: np.array([-object_offset["x"], -object_offset["y"], 0, 0]),
+            2: np.array([ object_offset["x"], -object_offset["y"], np.pi/2, 0]),
+            3: np.array([ object_offset["x"],  object_offset["y"], np.pi, 0]),
+            4: np.array([-object_offset["x"],  object_offset["y"], -np.pi/2, 0])
+        }
+
         # current state
         self.pos = None
         self.theta = None
@@ -139,8 +142,8 @@ class ControlNode():
         self.traj_idx = 0
 
         # initialize controllers
-        self.trajectoryController = TrajectoryController(rospy.get_param("ctrl_tf_state"), rospy.get_param("ctrl_tf_state_dot"))
-        self.formationController = formation_controller.FormationController()
+        self.trajectoryController = TrajectoryController(self.robot_offsets)
+        self.formationController = formation_controller.FormationController(self.robot_offsets)
 
         # output commands
         self.wheel_phi_cmd = None
@@ -265,10 +268,10 @@ class ControlNode():
         cmd.robot_omega.data = self.robot_omega_cmd
         self.pub_cmds.publish(cmd)
 
-        if self.trajectoryController.error is not None:
+        if self.trajectoryController.controller_error is not None:
             controller_error = Float32MultiArray()
             controller_error.data = self.trajectoryController.controller_error
-            self.controller_error_pub.publish(errorray)
+            self.controller_error_pub.publish(controller_error)
 
         flag = Bool()
         flag.data = self.last_waypoint_flag
