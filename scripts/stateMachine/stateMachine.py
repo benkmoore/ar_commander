@@ -42,6 +42,10 @@ class StateMachine():
         self.pos = None
         self.theta = None
 
+        # controller thresholds
+        self.wp_threshold = rospy.get_param("wp_threshold")
+        self.theta_threshold = rospy.get_param("theta_threshold")
+
         # subscribers
         rospy.Subscriber('estimator/state', State, self.stateCallback)
         rospy.Subscriber('cmd_trajectory', Trajectory, self.trajectoryCallback)
@@ -68,7 +72,7 @@ class StateMachine():
         # TODO: add more checks (battery measurement etc)
         check1 = rospy.get_rostime() - self.mode_start_time > rospy.Duration.from_sec(INIT_TIME)
         check2 = self.pos is not None # check decawave and estimator
-   #     check3 = rosnode.rosnode_ping(rospy.get_namespace() + rospy.get_param("ros_serial_node"), max_count=1) # check teensy
+        #check3 = rosnode.rosnode_ping(rospy.get_namespace() + rospy.get_param("ros_serial_node"), max_count=1) # check teensy
 
         if check1 and check2:# and check3:
             return True
@@ -82,9 +86,10 @@ class StateMachine():
 
     def trajectoryFinished(self):
         wp_final = self.trajectory[-1,:]
-        check1 = npl.norm(self.pos - wp_final[0:2]) < params.wp_threshold
-        check2 = np.abs(wrapAngle(self.theta - wp_final[2])) < params.theta_threshold
+        check1 = npl.norm(self.pos - wp_final[0:2]) < self.wp_threshold
+        check2 = np.abs(wrapAngle(self.theta - wp_final[2])) < self.theta_threshold
         check3 = self.last_wp_flag
+
         if check1 and check2 and check3:
             return True
         return False
@@ -124,14 +129,6 @@ class StateMachine():
             rate.sleep()
 
 if __name__ == '__main__':
-    env = rospy.get_param("ENV")
-    if env == "sim":
-        import configs.sim_params as params
-    elif env == "hardware":
-        import configs.hardware_params as params
-    else:
-        raise ValueError("StateMachine ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
-
     state_machine = StateMachine()
     state_machine.run()
 

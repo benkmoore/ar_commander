@@ -8,10 +8,10 @@ import collections
 from ar_commander.msg import Decawave
 
 from utils.utils import wrapAngle
-import configs.hardware_params as params
 
-PORT1 = params.decawave_ports[0]  # sensor 1 usb port: Y axis arm of robot
-PORT2 = params.decawave_ports[1]  # sensor 2 usb port: X axis arm of robot
+decawave_ports = rospy.get_param("decawave_ports")
+PORT1 = decawave_ports[0]  # sensor 1 usb port: Y axis arm of robot
+PORT2 = decawave_ports[1]  # sensor 2 usb port: X axis arm of robot
 SERIALTIMEOUT = 0.3        # duration of serial read (s)
 NUM_READ_FAILS = 10        # number of fails to read decas print warning
 FAILED_CONNECT_LIMIT = 30  # number of read attempts before serial connection is restarted
@@ -111,7 +111,7 @@ class GetPose():
         self.boardX.connect()
 
         # Decawave constants
-        self.pos_meas_std = params.pos_measurement_std # pos measurement standard deviation(m)
+        self.pos_meas_std = rospy.get_param("pos_measurement_std") # pos measurement standard deviation(m)
 
         # measurements
         self.pos1 = None

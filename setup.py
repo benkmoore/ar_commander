@@ -5,9 +5,7 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 # build scripts
 setup_args = generate_distutils_setup(
-packages=['estimator', 'stateMachine', 'navigator', 'controller', 'sensorInterface', 'configs', 'utils'],
+packages=['estimator', 'stateMachine', 'navigator', 'controller', 'sensorInterface', 'utils'],
 package_dir={'': 'scripts'},
 )
 setup(**setup_args)
-
-

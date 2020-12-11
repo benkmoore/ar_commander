@@ -1,0 +1,26 @@
+
+CONTROLLER_RATE: 70                       # rate in Hz
+
+startup_time: 6.0                         # s
+
+max_vel: 1                                # m/s
+max_omega: 0.175                          # rad/s
+
+wp_threshold: 0.4                         # distance threshold at which we transition to next waypoint (m)
+theta_threshold: rad(pi/5)                # robot theta threshold at which we transition to next waypoint (rad)
+time_threshold: 1.0                       # time threshold about final trajectory time at which we signal last waypoint flag (s)
+
+# controller params
+ctrl_tf_state: {"num": [ [ 0.00853581, -0.00853378 ]], "den": [ 1.        , -1.99146317,  0.9914652]}
+ctrl_tf_state_dot: {"num": [0.01418416], "den": [ 1.        , -0.98581584]}
+
+# localization filter params: AR1-142
+positionFilterParams: {"Q": 0.002, "Q_d": 0.002}
+thetaFilterParams: {"Q": 1, "Q_d": 1}
+pos_measurement_std: 0.035                # position measurement standard deviation (m)
+
+# decawaves input ports
+decawave_ports: ['/dev/tty-Y','/dev/tty-X']
+
+# object offsets
+object_offset: {"x": 0.75, "y": 1.2}
