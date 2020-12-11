@@ -1,0 +1,20 @@
+<launch>
+	<arg name="robot_id"/>
+	<arg name="robot_tf"/>
+	<arg name="init_pose"/>
+
+
+	<!-- Set sim environment -->
+	<param name="ENV" value="sim" />
+
+	<!-- Spawn robot in sim -->
+	<include file="$(find ar_sim)/launch/gazebo_sim.launch" >
+		<arg name="init_pose" value="$(arg init_pose)" />
+		<arg name="robot_id" value="$(arg robot_id)" />
+	</include>
+
+	<!-- Launch autonomy stack -->
+	<include file="$(find ar_commander)/launch/multi_autonomy_stack.launch" />
+
+	
+</launch>

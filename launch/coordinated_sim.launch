@@ -1,0 +1,80 @@
+
+<launch>
+	<!-- Create world -->
+	<include file="$(find ar_sim)/launch/world.launch"/>
+
+	<!-- Set enviroment variable to sim -->
+	<param name="ENV" value="sim" />
+
+	<!-- Set path to ar repos -->
+	<param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+	<param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+	<!-- Create Robot 1 -->
+	<group ns="robot1">
+		 <!-- Set enviroment variable to sim -->
+        <param name="ENV" value="sim" />
+
+        <!-- Set path to ar repos -->
+        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+		<include file="$(find ar_commander)/launch/multi_ar_robot.launch">
+			<arg name="robot_id" value="robot1" />
+			<arg name="robot_tf" value="tf_1" />
+			<arg name="init_pose" value="-x 0 -y 0 -z 0" />
+		</include>
+    </group>
+
+	<!-- Create robot 2 -->
+	<group ns="robot2">
+	 <!-- Set enviroment variable to sim -->
+        <param name="ENV" value="sim" />
+
+        <!-- Set path to ar repos -->
+        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+		<include file="$(find ar_commander)/launch/multi_ar_robot.launch">
+	    	<arg name="robot_id" value="robot2" />
+	    	<arg name="init_pose" value="-x 2 -y 0 -z 0" />
+	    	<arg name="robot_tf" value="tf_2" />
+	    </include>
+	</group>
+
+	<!-- Create Robot 3 -->
+	<group ns="robot3">
+	 <!-- Set enviroment variable to sim -->
+        <param name="ENV" value="sim" />
+
+        <!-- Set path to ar repos -->
+        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+		<include file="$(find ar_commander)/launch/multi_ar_robot.launch">
+			<arg name="robot_id" value="robot3" />
+			<arg name="robot_tf" value="tf_3" />
+			<arg name="init_pose" value="-x 2 -y 2 -z 0" />
+		</include>
+    </group>
+
+	<!-- Create robot 4 -->
+	<group ns="robot4">
+	 <!-- Set enviroment variable to sim -->
+        <param name="ENV" value="sim" />
+
+        <!-- Set path to ar repos -->
+        <param name="AR_COMMANDER_DIR" value="$(find ar_commander)" />
+        <param name="AR_SIM_DIR" value="$(find ar_sim)" />
+
+		<include file="$(find ar_commander)/launch/multi_ar_robot.launch">
+	    	<arg name="robot_id" value="robot4" />
+	    	<arg name="init_pose" value="-x 0 -y 2 -z 0" />
+	    	<arg name="robot_tf" value="tf_4" />
+	    </include>
+	</group>
+
+	<!-- <node pkg="ar_commander" type="navigator_test.py" name="navigator_test" ouput="screen" /> -->
+    <!-- <node pkg="ar_commander" type="formation_controller.py" name="FormationController" output="screen" />  -->
+
+</launch>
