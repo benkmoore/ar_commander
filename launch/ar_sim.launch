@@ -3,8 +3,10 @@
     <include file="$(find ar_sim)/launch/world.launch"/>
 
     <group ns="robot1">
-        <!-- Set enviroment variable to sim -->
-        <param name="ENV" value="sim" />
+        <!-- load params -->
+        <rosparam command="load" file="$(find ar_commander)/configs/software_sim_params.yaml"/>
+        <rosparam command="load" file="$(find ar_sim)/configs/sim_interface_params.yaml"/>
+        <rosparam command="load" file="$(find ar_commander)/configs/hardware_params.yaml"/>
 
         <!-- launch ar_sim -->
         <include file="$(find ar_sim)/launch/gazebo_sim.launch" >

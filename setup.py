@@ -5,17 +5,7 @@ from catkin_pkg.python_setup import generate_distutils_setup
 
 # build scripts
 setup_args = generate_distutils_setup(
-packages=['estimator', 'stateMachine', 'navigator', 'controller', 'sensorInterface'],
+packages=['estimator', 'stateMachine', 'navigator', 'controller', 'sensorInterface', 'utils'],
 package_dir={'': 'scripts'},
 )
 setup(**setup_args)
-
-# build configs
-setup_args = generate_distutils_setup(
-packages=['sim_params', 'robot_v1', 'hardware_params'],
-package_dir={'': 'configs'},
-)
-setup(**setup_args)
-
-
-

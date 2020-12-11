@@ -7,8 +7,6 @@ import numpy as np
 import collections
 from ar_commander.msg import Decawave
 
-import hardware_params as params
-
 # timeout in seconds for how long we try to read serial data if no data immediately available
 SERIALTIMEOUT = 0.3
 RATE = 10
@@ -109,7 +107,7 @@ class GetPose():
         self.boardX.connect()
 
         # Decawave constants
-        self.pos_meas_std = params.pos_measurement_std # pos measurement standard deviation(m)
+        self.pos_meas_std = rospy.get_param("pos_measurement_std") # pos measurement standard deviation(m)
 
         # measurements
         self.pos1 = None

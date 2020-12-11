@@ -5,7 +5,7 @@
 
 	<!-- Create Robot 1 -->
 	<group ns="robot1">
-		<include file="$(find ar_commander)/launch/ar_robot.launch">
+		<include file="$(find ar_commander)/launch/ar_robot_sim.launch">
 			<arg name="robot_id" value="robot1" />
 			<arg name="robot_tf" value="tf_1" />
 			<arg name="init_pose" value="-x 0 -y 0 -z 0" />
@@ -14,7 +14,7 @@
 
 	<!-- Create robot 2 -->
 	<group ns="robot2">
-		<include file="$(find ar_commander)/launch/ar_robot.launch">
+		<include file="$(find ar_commander)/launch/ar_robot_sim.launch">
 	    	<arg name="robot_id" value="robot2" />
 	    	<arg name="init_pose" value="-x 2 -y 0 -z 0" />
 	    	<arg name="robot_tf" value="tf_2" />
@@ -23,7 +23,7 @@
 
 	<!-- Create Robot 3 -->
 	<group ns="robot3">
-		<include file="$(find ar_commander)/launch/ar_robot.launch">
+		<include file="$(find ar_commander)/launch/ar_robot_sim.launch">
 			<arg name="robot_id" value="robot3" />
 			<arg name="robot_tf" value="tf_3" />
 			<arg name="init_pose" value="-x 2 -y 2 -z 0" />
@@ -32,7 +32,7 @@
 
 	<!-- Create robot 4 -->
 	<group ns="robot4">
-		<include file="$(find ar_commander)/launch/ar_robot.launch">
+		<include file="$(find ar_commander)/launch/ar_robot_sim.launch">
 	    	<arg name="robot_id" value="robot4" />
 	    	<arg name="init_pose" value="-x 0 -y 2 -z 0" />
 	    	<arg name="robot_tf" value="tf_4" />
