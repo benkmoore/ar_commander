@@ -250,9 +250,9 @@ class ControlNode():
             t = 0
             if self.trajectoryController.trajectory is not None: # check trajectory is initiliazed
                 t = time.time() - self.trajectoryController.init_traj_time
-            if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < self.wp_threshold and \
-                abs(t - self.trajectoryController.t[-1]) < self.time_threshold: # check if near end pos and end time
-                self.last_waypoint_flag = True
+                if npl.norm(self.trajectoryController.trajectory[-1,0:2]-self.pos) < self.wp_threshold and \
+                    abs(t - self.trajectoryController.t[-1]) < self.time_threshold: # check if near end pos and end time
+                    self.last_waypoint_flag = True
 
             self.wheel_w_cmd, self.wheel_phi_cmd = self.convert2MotorInputs(v_des,w_des)
             self.robot_v_cmd = v_des
