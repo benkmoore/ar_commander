@@ -44,8 +44,8 @@ class GlobalNavigator():
         self.robot_offsets = {
             1: np.array([-object_offset["x"], -object_offset["y"], 0, 0]), #
             2: np.array([ object_offset["x"], -object_offset["y"], np.pi/2, 0]),
-            3: np.array([ object_offset["x"],  object_offset["y"], np.pi, 0]),
-            4: np.array([-object_offset["x"],  object_offset["y"], -np.pi/2, 0])
+            3: np.array([ object_offset["x"],  object_offset["y"], 0, 0]),
+            4: np.array([-object_offset["x"],  object_offset["y"], 0, 5])
         }
 
         self.robot_publishers = {
@@ -67,9 +67,19 @@ class GlobalNavigator():
 
     def loadTrajectory(self):
         print("loading trajectory")
-        traj_id = 1 # specify what trajectory we want to use
-
-        if traj_id == 1:    # square (theta=0)
+        traj_id = 0 # specify what trajectory we want to use
+        if traj_id == 0:    # square (theta=0)
+            self.trajectory = np.array([
+                # [0,0,0,0],
+                [2,6,0,1],
+                [3,6,0,2],                
+                [3,2,0,3]
+                #[3,2,0,38],
+                # [1,1,0,4],
+                # [0,1,0,6],
+                # [0,0,0,8]
+                ])
+        elif traj_id == 1:    # square (theta=0)
             self.trajectory = np.array([
                 # [0,0,0,0],
                 [2.5,6,0,1],
