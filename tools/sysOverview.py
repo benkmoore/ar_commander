@@ -153,7 +153,7 @@ class DataRetriever():
         rospy.Subscriber('/'+ robot_id +'/estimator/state', State, self.stateCallback)
         rospy.Subscriber('/'+ robot_id +'/controller_cmds', ControllerCmd, self.cmdCallback)
         rospy.Subscriber('/'+ robot_id +'/state_machine/mode', Int8, self.modeCallback)
-        rospy.Subscriber('/'+ robot_id +'/errors', Float32MultiArray, self.errorCallback)
+        rospy.Subscriber('/'+ robot_id +'/controller_error', Float32MultiArray, self.errorCallback)
 
 
     def errorCallback(self, msg):
