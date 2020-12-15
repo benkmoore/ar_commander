@@ -11,7 +11,7 @@ theta_threshold: rad(pi/5)                # robot theta threshold at which we tr
 time_threshold: 1.0                       # time threshold about final trajectory time at which we signal last waypoint flag (s)
 
 # controller params
-ctrl_tf_state: {"num": [ [ 0.00853581, -0.00853378 ]], "den": [ 1.        , -1.99146317,  0.9914652]}
+ctrl_tf_state: {"num": [0.00853581, -0.00853378], "den": [1.        , -1.99146317,  0.9914652]}
 ctrl_tf_state_dot: {"num": [0.01418416], "den": [ 1.        , -0.98581584]}
 
 # localization filter params: AR1-142
