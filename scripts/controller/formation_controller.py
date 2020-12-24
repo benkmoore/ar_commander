@@ -1,114 +1,58 @@
 #!/usr/bin/env python
 import numpy as np
 import numpy.linalg as npl
-import rospy
+
 import sys
 
-from ar_commander.msg import Trajectory, State
-from std_msgs.msg import Int8
-from stateMachine.stateMachine import Mode
-from ar_commander.msg import Trajectory, ControllerCmd, State
 import networkx as nx
-from std_msgs.msg import Int8, Bool
 import scipy.signal as sps
 import scipy.interpolate as spi
 import time
 import matplotlib.pyplot as plt
-# env = rospy.get_param("ENV")
-# if env == "sim":
-#     import sim_params as params
-# elif env == "hardware":
-#     import hardware_params as params
-# else:
-#     raise ValueError("Controller ENV: '{}' is not valid. Select from [sim, hardware]".format(env))
 
-import robot_v1 as rcfg
 
 # TODO:
 # Abstract this into hiarchical framework so that the tracking controller for 
 # a single robot is independent of the consensus control on the formation
 
-class RobotSubscriber:
-    def __init__(self, robot_ns):
-        # current state
-        self.x = None
-        self.x_d = None
-        self.u = None # cmd position
-        self.reference_gain = .3
-        self.formation_gain = .7
-        self.last_waypoint_flag = None
+# both classes need same instance of simulated robot
+class SimulatedRobotSubscriber:
+    # real robot subscriber could except other configs first and then initialize subscriber
+    def __init__(self, robot_id, simulated_robo=None, dt=None):
+        self.x = np.zeros((3, 1))
+        self.x_d = np.zeros((3, 1))
+        self.simulated_robot = simulated_robot(dt)
+        self.id = robot_id
 
-        self.phi_prev = np.zeros(rcfg.N) 
+        self.buffer_head = 0
+        self.buffer_size = 5
+        self.x_history = np.zeros((3, self.buffer_size))
     
+    def update_history(self):
+        self.x = self.get_state()
+        self.x_d = self.get_state_dot()
+        # update buffer
+        self.x_history[:, self.buffer_head, np.newaxis] = self.x
+        self.buffer_head =  (self.buffer_head + 1) % self.buffer_size
 
-        self.robot_ns = robot_ns
-        rospy.Subscriber(self.robot_ns + "/estimator/state", State, self.stateCallback)
+    def get_state(self):
+        return self.simulated_robot.get_state()
 
-        self.pub_cmds = rospy.Publisher(self.robot_ns + '/controller_cmds', ControllerCmd, queue_size=10)
-        
+    def get_state_dot(self):
+        return self.simulated_robot.get_state_dot()
 
-    def stateCallback(self, msg):
-        pos = np.array(msg.pos.data)
-        vel = np.array(msg.vel.data)
-        theta = np.array([msg.theta.data])
-        omega = np.array([msg.omega.data])
-        self.x = np.concatenate((pos, theta)).reshape(-1,1)
-        self.x_d = np.concatenate((vel, omega)).reshape(-1,1)
+class SimulatedRobotInterface:
+    def __init__(self, robot_id, simulated_robot, buffer_size):
 
-      ## Helper Functions
-    def convert2MotorInputs(self, v_cmd_gf, omega_cmd):
-        """Convert velocity and omega commands to motor inputs"""
+        self.u = np.zeros((3, 1))
+        self.reference_gain = 0.50
+        self.formation_gain = 1.0
+        self.id = robot_id
+        self.simulated_robot = simulated_robot
 
-        # convert inputs to robot frame velocity commands
-        R = np.array([[np.cos(self.x[2,0]), np.sin(self.x[2,0])],     # rotation matrix
-                      [-np.sin(self.x[2,0]), np.cos(self.x[2,0])]])
-        v_cmd_rf = np.dot(R, v_cmd_gf)[:,np.newaxis]        # convert to robot frame
-
-        v_th1 = np.vstack([-rcfg.R1*omega_cmd, np.zeros(rcfg.N/2)])
-        v_th2 = np.vstack([np.zeros(rcfg.N/2), rcfg.R2*omega_cmd])
-        v_th_rf = np.hstack([v_th1, v_th2])
-
-        v_xy = v_cmd_rf + v_th_rf
-
-        # Convert to |V| and phi
-        v_wheel = npl.norm(v_xy, axis=0)
-        phi_cmd = np.arctan2(v_xy[1,:], v_xy[0,:])
-
-        # pick closest phi
-        phi_diff = phi_cmd - self.phi_prev
-        idx = abs(phi_diff) > np.pi/2
-        phi_cmd -= np.pi*np.sign(phi_diff)*idx
-        v_wheel *= -1*idx + 1*~idx
-
-        # enforce physical bounds
-        idx_upper = phi_cmd > rcfg.phi_bounds[1]     # violates upper bound
-        idx_lower = phi_cmd < rcfg.phi_bounds[0]     # violates lower bound
-
-        phi_cmd -= np.pi*idx_upper - np.pi*idx_lower
-        v_wheel *= -1*(idx_upper+idx_lower) + 1*~(idx_upper + idx_lower)
-
-        # map to desired omega (angular velocity) of wheels: w = v/r
-        w_wheel = v_wheel/rcfg.wheel_radius
-        print("phi cmd ", phi_cmd)
-        print("w wheel ", w_wheel)
-
-        return w_wheel, phi_cmd
-
-    def publish(self):
-        """ publish cmd messages """
-
-        robot_v_cmd = self.u[0:2].flatten()
-        robot_omega_cmd = self.u[2].flatten()
-        wheel_w_cmd, wheel_phi_cmd = self.convert2MotorInputs(robot_v_cmd, robot_omega_cmd)
-        cmd = ControllerCmd()
-        cmd.omega_arr.data = wheel_w_cmd
-        cmd.phi_arr.data = wheel_phi_cmd
-        cmd.robot_vel.data = robot_v_cmd
-        cmd.robot_omega.data = robot_omega_cmd
-
-        self.phi_prev =wheel_phi_cmd   
-
-        self.pub_cmds.publish(cmd)
+    def apply_control(self, u):
+        self.x_d = u
+        self.simulated_robot.apply_control(u)
 
     def get_reference_gain(self):
         return self.reference_gain
@@ -116,215 +60,195 @@ class RobotSubscriber:
     def get_formation_gain(self):
         return self.formation_gain
 
-    def update_cmd(self, u):
-        self.u = u
-
-class CentralizedFormationController():
-    def __init__(self, graph):
-        rospy.init_node('FormationController', anonymous=True)
-
-        # initialize graph
-        self.graph = graph
-        self.robot_states = {}
-        self.traj_idx = 0
-
-        # when trajectory is published, 
-        # self.trajectoryCallback is executed
-        # which then calls fitSpline2Trajectory 
-        self.trajectory = None
-        self.t = None 
-        self.init_traj_time = None
-        self.new_traj_flag = False # initially there is no trajectory
-        rospy.Subscriber("/cmd_trajectory", Trajectory, self.trajectoryCallback)
-
-        # assume same gains across all robots
-        self.gamma = 1
-        self.formation_gain = 1
-        self.reference_gain = 1
-
-        # for each robot set up state subscriber object
-        for robot_ns in self.graph.nodes():
-            self.robot_states[robot_ns] = RobotSubscriber(robot_ns)
-
+class SplineTrajectory:
+    def __init__(self, trajectory):
+        self.trajectory = trajectory
+        self.fitSpline2Trajectory(trajectory)
 
     def fitSpline2Trajectory(self, trajectory):
-        self.trajectory = trajectory.reshape(-1, 4)
-        x, y, theta, t = np.split(self.trajectory, 4, axis=1)
+        x, y, theta, t = np.split(trajectory, 4, axis=1)
         t = t.reshape(-1)
 
-        self.x_spline = spi.CubicSpline(t, x, bc_type='clamped', extrapolate='False') # output: x_des, input: t
-        self.y_spline = spi.CubicSpline(t, y, bc_type='clamped', extrapolate='False') # output: y_des, input: t
-        self.theta_spline = spi.CubicSpline(t, theta, bc_type='clamped', extrapolate='False') # output: theta_des, input: t
+        self.x_spline = spi.CubicSpline(t, x, extrapolate='False')  # output: x_des, input: t
+        self.y_spline = spi.CubicSpline(t, y, extrapolate='False')  # output: y_des, input: t
+        self.theta_spline = spi.CubicSpline(t, theta, bc_type='clamped', extrapolate='False')  # output: theta_des, input: t
 
         self.v_x = self.x_spline.derivative()
         self.v_y = self.y_spline.derivative()
         self.omega = self.theta_spline.derivative()
 
-        # initialize time
-        self.t = t
+    def get_state(self, t):
+        return np.vstack((self.x_spline(t), self.y_spline(t), self.theta_spline(t)))
         
+    def get_state_dot(self, t):
+        return np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
 
-    def trajectoryCallback(self, msg):
-        if self.traj_idx ==0:
-            self.trajectory = np.vstack([msg.x.data,msg.y.data,msg.theta.data,msg.t.data]).T
-            self.fitSpline2Trajectory(self.trajectory)
-            self.new_traj_flag = True
-            self.init_traj_time = time.time()
-        self.traj_idx += 1
-        print("traj index = ", self.traj_idx)
         
+class FormationController():
+    def __init__(self, graph, trajectory, robot_interface, robot_subscriber):
+        self.robot_subscriber = robot_subscriber
+        self.robot_interface = robot_interface
+        # initialize graph, graph has nodes of subscriber objects
+        self.graph = graph
+       
+        self.trajectory = SplineTrajectory(trajectory)
+        # assume same gains across all robots
+        self.gamma = 1.0
 
-    def get_reference(self):
-        t = time.time() - self.init_traj_time
-        if t < self.t[0]: 
-            t = self.t[0] # bound calls between start and end time
-            print("t[0")
-        if t > self.t[-1]: 
-            t = self.t[-1]
-            print("t[-1")
-        state_des = np.vstack((self.x_spline(t), self.y_spline(t), self.theta_spline(t)))
-        state_dot_des = np.vstack((self.v_x(t), self.v_y(t), self.omega(t)))
-        print("traj time", t)
-        return state_des, state_dot_des
+    def update_reference(self, trajectory):
+        self.trajectory = SplineTrajectory(trajectory)
 
-
-    def calc_control(self, robot):
+    def run_control(self, t):
         # should robot states be part of the graph?
         # should robot states be a dictionary held in the top level class
         # top level robot states get updated by callback
-        robot_ns = robot.robot_ns
+      
         sum_gain = 0
         formation_control = np.zeros((3, 1))
         reference_control = np.zeros((3, 1))
 
         # get reference state and state derivate
+        x = self.robot_subscriber.x
+        xref = self.trajectory.get_state(t)
+        xref_d = self.trajectory.get_state_dot(t)
+        T = get_offset_transform(xref)
 
-        xref, xref_d = self.get_reference()
-        for neighbor_id in self.graph.predecessors(robot_ns):
-            neighbor = self.robot_states[neighbor_id]
+        robot_offset = nx.get_node_attributes(self.graph, "offset")[self.robot_subscriber].copy()
 
+        # calculate contribution from formation tracking
+        for neighbor in self.graph.predecessors(self.robot_subscriber):
             # get gains
-            reference_gain = robot.get_reference_gain()
-            formation_gain = robot.get_formation_gain()
-            edge_gain = self.graph[neighbor.robot_ns][robot.robot_ns]["weight"]
+            formation_gain = self.robot_interface.get_formation_gain()
+            edge_gain = self.graph[neighbor][self.robot_subscriber]["weight"]
 
             # get offsets
-            neighbor_offset = nx.get_node_attributes(self.graph,"offset")[neighbor_id].copy()
-            robot_offset = nx.get_node_attributes(self.graph,"offset")[robot_ns].copy()
-            print("offsets", np.sum(neighbor_offset)," ", np.sum(robot_offset))
-
-            th = robot.x[2,0]
-            R = np.array([
-            [np.cos(th), -np.sin(th)],
-            [np.sin(th), np.cos(th)]
-            ])
-
-            robot_offset[0:2] = R.dot(robot_offset[0:2])
-            neighbor_offset[0:2] = R.dot(neighbor_offset[0:2])
-
+            neighbor_offset = nx.get_node_attributes(self.graph, "offset")[neighbor].copy()
+            
 
             # calculate errors
-            formation_error = (robot.x - neighbor.x) - (robot_offset - neighbor_offset)
-            reference_error = robot.x - robot_offset - xref
-
-            # calculate control
-            # assumes all robots can access the reference
+            formation_error = (x - neighbor.x) - np.dot(T, (robot_offset - neighbor_offset))
             formation_control += edge_gain * (neighbor.x_d - formation_gain * formation_error)
-            reference_control += reference_gain * (xref_d - formation_gain * reference_error)
+            sum_gain += edge_gain
 
-            # print(robot_ns, " formation error = ", formation_error)
-            # print(robot_ns, " refere error = ", reference_error)
-            sum_gain += (edge_gain + reference_gain)
+        # calculate contribution from reference tracking
+        # assumes all robots can access the reference
+        reference_error = x - np.dot(T, robot_offset) - xref
+        reference_gain = self.robot_interface.get_reference_gain()
+        reference_control = reference_gain * (xref_d - formation_gain * reference_error)
+        sum_gain += reference_gain
             
         control = (1.0 / sum_gain) * (formation_control + reference_control)
+        self.robot_interface.apply_control(control)
 
-        return control
+def get_offset_transform(x):
+    th = x[2, 0]
+    T = np.array([
+        [np.cos(th), -np.sin(th), 0.0],
+        [np.sin(th), np.cos(th), 0.0],
+        [0.0, 0.0, 1.0]
+        ])
+    return T
 
-    def controlLoop(self):
-        
-        
-        # check if reached final  position
-        # params.wp_threshold
-        # params.time_threshold:
-        # if npl.norm(self.trajectory[-1,0:2]-self.pos) < 2 and \
-        #     abs(t - self.t[-1]) < 1: # check if near end pos and end time
-        #     self.last_waypoint_flag = True
+def plot(graph, trajectory,t):
+    pos  = {}
+    labels = {}
+    state_des = trajectory.get_state(t)
+    plt.plot(state_des[0,0], state_des[1,0], "rs")
+    plt.plot(trajectory.trajectory[:,0], trajectory.trajectory[:,1])
+    ref_pos = {}
+    xref = trajectory.get_state(t)
+    T = get_offset_transform(xref)
+    for robot in graph.nodes():
+        pos[robot] = (robot.x[0,0], robot.x[1,0])
+        offset = nx.get_node_attributes(graph,"offset")[robot].copy()
+        ref_pos[robot] = (xref + np.dot(T, offset)).reshape(-1,)[0:2]
+        labels[robot]  =  robot.id
 
-        # TODO verify all robots have data
-        for robot_id in self.graph.nodes():
-            u = self.calc_control(self.robot_states[robot_id])
-            self.robot_states[robot_id].update_cmd(u)
+    
+    nx.draw_networkx(graph, pos=pos, labels=labels, node_color='b')
+    nx.draw_networkx(graph, pos=ref_pos, labels=labels, node_color='r')
+    plt.axis("equal")
+    plt.draw()
+    plt.pause(0.0001)
+    plt.cla()
 
-    def run(self):
-        #params.CONTROLLER_RATE
-        rate = rospy.Rate(10)
-        rate.sleep()
 
-        # run forever
-        while not rospy.is_shutdown():
-            # perform formation control until destination is reached
-            if self.new_traj_flag is True:
+def control_loop(graph, trajectory):
+    robot_controllers = []
+    for node in graph.nodes():
+        buffer_size = 5
+        simulated_robot = node.simulated_robot
+        robot_interface = SimulatedRobotInterface(node.id, simulated_robot, buffer_size)
+        controller = FormationController(graph, trajectory, robot_interface, node)
+        robot_controllers.append(controller)
 
-                # calculate control for each robot
-                self.controlLoop()
-
-                # publish control for each robot
-                for robot_ns in self.robot_states:
-                    self.robot_states[robot_ns].publish()
-                self.plot()
-                
-            rate.sleep()
-
-    def plot(self):
-        state_des, state_dot_des = self.get_reference()
-        # plt.plot(state_des[0,0], state_des[1,0],"r*")
-        th = state_des[2,0]
-        R = np.array([
-            [np.cos(th), -np.sin(th)],
-            [np.sin(th), np.cos(th)]
-            ])
-        
-
-        for robot_id, robot in self.robot_states.items():
-            plt.plot(robot.x[0,0], robot.x[1,0], "b*")
-            offset = nx.get_node_attributes(self.graph,"offset")[robot_id].copy()
-            offset[0:2] = R.dot(offset[0:2])
+    
+    t = 0.0
+    
+    while t < trajectory[-1,3]:
+        traj_object = SplineTrajectory(trajectory)
+        # start_time = time.time()
+        for controller in robot_controllers:
+            # t = time.time() - start_time
+            controller.run_control(t)
             
-            
-            plt.plot(state_des[0,0]+offset[0,0], state_des[1,0]+offset[1,0], "g*")
-            # print("offset = ", offset)
+        for controller in robot_controllers:
+            controller.robot_subscriber.update_history()
+        plot(graph, traj_object, t)
+        # time.sleep(0.01)
+        t += 0.1
+        # plt.clf()
 
-        
-
-        plt.axis("equal")
-        plt.draw()
-        plt.pause(0.0001)
-
-
-if __name__ == '__main__':
+def main():
+    # setup graph
     G  = nx.DiGraph()
+    robot_subscriber = SimulatedRobotSubscriber
+    subscriber_kwargs_normal = {"simulated_robot" : SingleIntegrator, "dt": 0.1}
+    subscriber_kwargs_slow = {"simulated_robot" : SlowSingleIntegrator, "dt": 0.1}
 
+
+    node1 = robot_subscriber("/robot1", **subscriber_kwargs_normal)
+    node2 = robot_subscriber("/robot2", **subscriber_kwargs_normal)
+    node3 = robot_subscriber("/robot3", **subscriber_kwargs_slow)
+    node4 = robot_subscriber("/robot4", **subscriber_kwargs_slow)
+
+    G.add_node(node1, offset=np.array([[0.0], [0.0], [0.0]]))
+    G.add_node(node2, offset=np.array([[2.0], [0.0], [0.0]]))
+    G.add_node(node3, offset=np.array([[2.0], [2.0], [0.0]]))
+    G.add_node(node4, offset=np.array([[0.0], [2.0], [0.0]]))
+
+    G.add_edge(node1, node2, weight=1)
+    # G.add_edge(node1, node3, weight=1)
+    G.add_edge(node1, node4, weight=1)
+
+ 
+    G.add_edge(node2, node3, weight=1)
+    # G.add_edge(node2, node4, weight=1)
+    # G.add_edge(node2, node1, weight=1)
     
-    G.add_node("/robot1", offset=np.array([[0.0], [0.0], [0.0]]))
-    G.add_node("/robot2", offset=np.array([[2.0], [0.0], [0.0]]))
-    G.add_node("/robot3", offset=np.array([[2.0], [2.0], [0.0]]))
-    G.add_node("/robot4", offset=np.array([[0.0], [2.0], [0.0]]))
+    G.add_edge(node3, node1, weight=1)
+    G.add_edge(node3, node2, weight=1)
+    # G.add_edge(node3, node4, weight=1)
 
-    G.add_edge("/robot1", "/robot2", weight=1)
-    # G.add_edge("/robot1", "/robot3", weight=1)
-    G.add_edge("/robot1", "/robot4", weight=1)
 
-    # G.add_edge("/robot2", "/robot1", weight=1)
-    G.add_edge("/robot2", "/robot3", weight=1)
-    # G.add_edge("/robot2", "/robot4", weight=1)
-    
-    G.add_edge("/robot3", "/robot1", weight=1)
-    G.add_edge("/robot3", "/robot2", weight=1)
-    # G.add_edge("/robot3", "/robot4", weight=1)
+    # G.add_edge(node4, node1, weight=1)
+    # G.add_edge(node4, node2, weight=1)
+    # G.add_edge(node4, node3, weight=1)
 
-    # G.add_edge("/robot4", "/robot1", weight=1)
-    # G.add_edge("/robot4", "/robot2", weight=1)
-    # G.add_edge("/robot4", "/robot3", weight=1)
+    t = np.linspace(0,2*np.pi, 20)[:, np.newaxis]
+    a = 10
+    x = a*np.sin(t)
+    y = a*np.sin(t)*np.cos(t)
+    time = np.linspace(1, 40, 20)[:, np.newaxis]
+    trajectory = np.hstack([x, y, t, time])
 
-    navigator = CentralizedFormationController(G)
-    navigator.run()
+    # num_pts = 50
+    # t = np.linspace(0, 2*np.pi, num_pts)[:, np.newaxis]
+    # time = np.linspace(1, 100, num_pts)[:, np.newaxis]
+    # trajectory = np.hstack([8*np.sin(t), 8*np.cos(t), t, time])
+
+    control_loop(G, trajectory)
+        
+
+# if __name__ == '__main__':
+#     main()

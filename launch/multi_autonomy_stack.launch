@@ -1,5 +1,0 @@
-<launch>
-    <node pkg="ar_commander" type="estimator.py" name="Estimator" output="screen" />
-    <node pkg="ar_commander" type="stateMachine.py" name="StateMachine" output="screen" />
-    
-</launch>
